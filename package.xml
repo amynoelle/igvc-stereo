@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>igvc-stereo</name>
+  <name>igvc_stereo</name>
   <version>0.0.0</version>
   <description>The IGVC-stereo package</description>
   <maintainer email="ubuntu@todo.todo">ubuntu</maintainer>

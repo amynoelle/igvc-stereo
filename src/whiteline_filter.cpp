@@ -6,7 +6,7 @@
 
 WhitelineFilter::WhitelineFilter()
 {
-     this->thresh_val = 166; // 203
+     this->thresh_val = 185; // 203
      this->erosion_size = 3; // 2
      this->h_rho = 1; // 1
      this->h_theta = 180; // 180
@@ -16,12 +16,12 @@ WhitelineFilter::WhitelineFilter()
      this->lower_limit=118;
      this->upper_limit=250;
 
-    dynamic_reconfigure::Server<usma_triclops::line_filter_paramsConfig>::CallbackType cb;
+    dynamic_reconfigure::Server<igvc_stereo::line_filter_paramsConfig>::CallbackType cb;
     cb = boost::bind(&WhitelineFilter::configCallback, this, _1, _2);
     dr_srv_.setCallback(cb);
 }
 
-void WhitelineFilter::configCallback(usma_triclops::line_filter_paramsConfig &config, uint32_t level)
+void WhitelineFilter::configCallback(igvc_stereo::line_filter_paramsConfig &config, uint32_t level)
 {
   // Set class variables to new values. They should match what is input at the dynamic reconfigure GUI.
     thresh_val=config.groups.filter.thresh_val_param;
@@ -111,7 +111,8 @@ cv::Mat WhitelineFilter::findLines(const cv::Mat& src_image)
         }
     }
 
-    return hough_image;
+    //return hough_image;
+    return this->cyan_image;
 }
 
 /**

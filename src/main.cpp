@@ -54,13 +54,6 @@
 #include <pcl/common/common_headers.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-/*
-#include <opencv2/core/core.hpp>;
-#include <opencv2/highgui/highgui.hpp>;
-#include <opencv2/imgproc/imgproc.hpp>;
-#include <opencv2/calib3d/calib3d.hpp>;
-*/
-
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
@@ -123,8 +116,8 @@ int main(int argc, char** argv) {
     printf("Initializing ZED\n");
     sl::zed::InitParams params;
     params.mode = PERFORMANCE;
-    params.unit = METER; // Scale to fit OpenGL world
-    params.coordinate = RIGHT_HANDED; // OpenGL compatible
+    params.unit = METER; 
+    params.coordinate = RIGHT_HANDED; 
     params.verbose = true;
 
     ERRCODE err = zed->init(params);
@@ -181,7 +174,6 @@ int main(int argc, char** argv) {
 		index4 = 0;
 
 		gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA);
-		//gpu_cloud = zed->normalizeMeasure_gpu(MEASURE::XYZBGRA);
 		point_step = gpu_cloud.channels * gpu_cloud.getDataSize();
 		row_step = point_step * width;
 		cpu_cloud = (float*) malloc(row_step * height);
@@ -191,43 +183,44 @@ int main(int argc, char** argv) {
 		);
 		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
 		cv::Mat cv_filteredImage = wl_filter.findLines(image);
-/*
-		printf("Image Width: %d\n", image.cols);
-		printf("Image Height: %d\n", image.rows);
-		printf("Cloud Width: %d\n", width);
-		printf("Could Height: %d\n", height);
-*/			
+
+		//wl_filter.displayThreshold();
+		//wl_filter.displayCyan();
+		//wl_filter.filterControl();
+
         	for (int i = 0; i < size; i++) {
-				
+			cv::Vec3b wl_point = cv_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
+
 			if (cpu_cloud[index4 + 2] > 0) { 
 	                	index4 += 4;
 	        		continue;
 	        	}
 			else if (check_red(cpu_cloud[index4+3])) {
-					point.y = -cpu_cloud[index4++];
-					point.z = cpu_cloud[index4++];
-	        	    point.x = -cpu_cloud[index4++];
-	        	    point.rgb = cpu_cloud[index4++];//0xffff0000; index4++;
-					red_cloud.push_back(point);
+				point.y = -cpu_cloud[index4++];
+				point.z = cpu_cloud[index4++];
+	        		point.x = -cpu_cloud[index4++];
+	        		point.rgb = cpu_cloud[index4++];
+				red_cloud.push_back(point);
 			}
 			else if (check_blue(cpu_cloud[index4+3])) {
-					point.y = -cpu_cloud[index4++];
-	        	    point.z = cpu_cloud[index4++];
-	        	    point.x = -cpu_cloud[index4++];
-	        	    point.rgb = cpu_cloud[index4++];//0xff0000ff; index4++;
-					blue_cloud.push_back(point);
+				point.y = -cpu_cloud[index4++];
+	        		point.z = cpu_cloud[index4++];
+	        		point.x = -cpu_cloud[index4++];
+	        		point.rgb = cpu_cloud[index4++];
+				blue_cloud.push_back(point);
 			}
 			
-			else if (cv_filteredImage.at<unsigned char>((index4/4)/width,(index4/4)%width) != 0) {//check_white(cpu_cloud[index4+3])) {
-					point.y = -cpu_cloud[index4++];
-	        	    point.z = cpu_cloud[index4++];
-	        	    point.x = -cpu_cloud[index4++];
-	        	    point.rgb = cpu_cloud[index4++];//0xffffffff; index4++;
-					white_cloud.push_back(point);
+			else if (wl_point[0] == 255 && wl_point[1] == 255) {
+				point.y = -cpu_cloud[index4++];
+	        		point.z = cpu_cloud[index4++];
+	        		point.x = -cpu_cloud[index4++];
+	        		point.rgb = cpu_cloud[index4++];
+				white_cloud.push_back(point);
 			}
 			else {	
 					index4 += 4;
 			}
+
 		}
 	        pcl::toROSMsg(red_cloud, output_red); // Convert the point cloud to a ROS message
 	        output_red.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
@@ -251,6 +244,8 @@ int main(int argc, char** argv) {
         	pub_white_cloud.publish(output_white);
 		white_cloud.clear();
 		free(cpu_cloud);
+		
+		ros::spinOnce();
 		loop_rate.sleep();
 	    }	
     }

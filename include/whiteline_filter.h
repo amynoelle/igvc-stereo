@@ -6,14 +6,14 @@
 // Dynamic reconfigure includes.
 #include <dynamic_reconfigure/server.h>
 // Auto-generated from cfg/ directory.
-#include <igvc-stereo/line_filter_paramsConfig.h>
+#include <igvc_stereo/line_filter_paramsConfig.h>
 
 class WhitelineFilter {
 public:
     WhitelineFilter();
 
     //! Callback function for dynamic reconfigure server.
-    void configCallback(usma_triclops::line_filter_paramsConfig &config, uint32_t level);
+    void configCallback(igvc_stereo::line_filter_paramsConfig &config, uint32_t level);
     void filterControl();
     cv::Mat findLines(const cv::Mat& src_image);
     void displayOriginal();
@@ -27,7 +27,7 @@ public:
 
 private:
     //! Dynamic reconfigure server.
-    dynamic_reconfigure::Server<usma_triclops::line_filter_paramsConfig> dr_srv_;
+    dynamic_reconfigure::Server<igvc_stereo::line_filter_paramsConfig> dr_srv_;
     void findPointsOnLines(const cv::Mat& cImage);
     cv::vector<cv::Vec4i> lines;
     std::vector<cv::Point2i> pixels;

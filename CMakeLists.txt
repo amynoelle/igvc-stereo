@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 
-project(igvc-stereo)
+project(igvc_stereo)
 
 # if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
 IF(NOT CMAKE_BUILD_TYPE)
@@ -24,6 +24,8 @@ else() # Ubuntu Desktop
     SET(CUDA_VERSION "8.0")
     message("*** On Ubuntu 14, change line 30 of CMakeLists.txt to CUDA 7.5")
 endif()
+
+
 find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc REQUIRED)
 find_package(CUDA ${CUDA_VERSION} REQUIRED)
 find_package(PCL REQUIRED)
@@ -116,6 +118,7 @@ install(TARGETS
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 #install(FILES
 #  nodelet_plugins.xml
 #  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
