@@ -48,6 +48,7 @@
 3. echo export ROS_MASTER_URI=http://[REMOTE_PC_IP]:11311 >> ~/[CATKIN_WORKSPACE]/devel/setup.sh
 4. echo export ROS_HOSTNAME=[JETSON_IP] >> ~/[CATKIN_WORKSPACE]/devel/setup.sh
 5. export ROS_IP=[JETSON_IP]
+
 #### ON REMOTE PC
 1. echo export ROS_MASTER_URI=http://localhost:11311 >> ~/.bashrc
 2. echo export ROS_HOSTNAME=[PC_IP] >> ~/.bashrc
