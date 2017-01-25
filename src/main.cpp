@@ -135,18 +135,8 @@ int check_white(float prgb) {
 
 int main(int argc, char** argv) {
 
-//    if (argc > 2) {
-        //std::cout << "Only the path of a SVO can be passed in arg" << std::endl;
-        //return -1;
-//	int ind;
-//	for (ind = 0; ind < argc; ind++) printf("%s\n",argv[ind]);
-//    }
-
-    //if (argc == 1) // Live Mode
     zed = new Camera(VGA);
-    //else // SVO playback mode
-    //    zed = new Camera(argv[1]);
-
+ 
     printf("Initializing ZED\n");
     sl::zed::InitParams params;
     params.mode = PERFORMANCE;
