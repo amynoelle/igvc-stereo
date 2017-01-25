@@ -45,6 +45,15 @@
 #include <pcl/common/common_headers.h>
 #include <pcl_conversions/pcl_conversions.h>
 
+/*
+#include <pcl/ModelCoefficients.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+*/
+
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
@@ -54,6 +63,31 @@ using namespace std;
 
 Camera* zed;
 SENSING_MODE dm_type = STANDARD;
+
+/*
+
+    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+    // Create the segmentation object
+    pcl::SACSegmentation<pcl::PointXYZ> seg;
+    // Optional
+    seg.setOptimizeCoefficients (true);
+    // Mandatory
+    seg.setModelType (pcl::SACMODEL_LINE);
+    seg.setMethodType (pcl::SAC_RANSAC);
+    seg.setDistanceThreshold (0.01);
+
+    seg.setInputCloud (cloud);
+    seg.segment (*inliers, *coefficients); 
+    // Extract the planar inliers from the input cloud
+    pcl::ExtractIndices<pcl::PointXYZ> extract;
+    extract.setInputCloud (cloud_filtered);
+    extract.setIndices (inliers);
+    extract.setNegative (false);
+
+    // Get the points associated with the planar surface
+    extract.filter (*cloud_plane);
+*/
 
 int check_red(float prgb) {
     uint32_t rgb = *reinterpret_cast<int*>(&prgb);
