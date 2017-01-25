@@ -33,6 +33,15 @@
 #include <ros/ros.h>
 #include <opencv2/opencv.hpp>
 
+// 2016 Pipeline includes
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include "usma_triclops/whiteline_filter.h"
+
 #include <zed/Camera.hpp>
 #include <zed/utils/GlobalDefine.hpp>
 
@@ -46,12 +55,10 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 /*
-#include <pcl/ModelCoefficients.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
+#include <opencv2/core/core.hpp>;
+#include <opencv2/highgui/highgui.hpp>;
+#include <opencv2/imgproc/imgproc.hpp>;
+#include <opencv2/calib3d/calib3d.hpp>;
 */
 
 #include <cuda.h>
@@ -64,30 +71,6 @@ using namespace std;
 Camera* zed;
 SENSING_MODE dm_type = STANDARD;
 
-/*
-
-    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
-    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-    // Create the segmentation object
-    pcl::SACSegmentation<pcl::PointXYZ> seg;
-    // Optional
-    seg.setOptimizeCoefficients (true);
-    // Mandatory
-    seg.setModelType (pcl::SACMODEL_LINE);
-    seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setDistanceThreshold (0.01);
-
-    seg.setInputCloud (cloud);
-    seg.segment (*inliers, *coefficients); 
-    // Extract the planar inliers from the input cloud
-    pcl::ExtractIndices<pcl::PointXYZ> extract;
-    extract.setInputCloud (cloud_filtered);
-    extract.setIndices (inliers);
-    extract.setNegative (false);
-
-    // Get the points associated with the planar surface
-    extract.filter (*cloud_plane);
-*/
 
 int check_red(float prgb) {
     uint32_t rgb = *reinterpret_cast<int*>(&prgb);
@@ -170,6 +153,10 @@ int main(int argc, char** argv) {
     ros::Publisher pub_red_cloud = nh.advertise<sensor_msgs::PointCloud2> (red_cloud_topic, 2);
     ros::Publisher pub_blue_cloud = nh.advertise<sensor_msgs::PointCloud2> (blue_cloud_topic, 2);
     ros::Publisher pub_white_cloud = nh.advertise<sensor_msgs::PointCloud2> (white_cloud_topic, 2);
+    
+    image_transport::ImageTransport it( nh );
+    image_transport::Publisher pub_img_rect = it.advertise( "/camera/rectified", 1);
+
     ros::Rate loop_rate(30);
 
     printf("Allocating Data\n");
@@ -187,6 +174,7 @@ int main(int argc, char** argv) {
     red_cloud.clear();
     blue_cloud.clear();
     white_cloud.clear();
+    cv::Mat image(height, width, CV_8UC4, 1)
 
     printf("Entering main loop\n");
     while (nh.ok()) {
@@ -256,6 +244,16 @@ int main(int argc, char** argv) {
             pub_white_cloud.publish(output_white);
 	    white_cloud.clear();
 	    free(cpu_cloud);
+
+	    cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB)
+	    cv::Mat cv_filteredImage = wl_filter.findLines(image);
+	    // get cv disparity image
+	    // use disparity image + filtered image to make point cloud
+	    // publish point cloud
+	    sensor_msgs::ImagePtr outmsg = cv_bridge::CvImage( std_msgs::Header(), "mono8", cv_filteredImage ).toImageMsg();
+      	    outmsg->header.frame_id = point_cloud_frame_id;
+            outmsg->header.stamp = ros::Time::now();
+            pub_img_rect.publish( outmsg );
         }
 	loop_rate.sleep();
     }
