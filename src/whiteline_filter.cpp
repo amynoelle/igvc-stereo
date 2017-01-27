@@ -2,7 +2,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include "usma_triclops/whiteline_filter.h"
+#include "whiteline_filter.h"
 
 WhitelineFilter::WhitelineFilter()
 {
@@ -316,5 +316,4 @@ void WhitelineFilter::displayCyan()
     }
 }
 
-whiteline_filter.cpp
 

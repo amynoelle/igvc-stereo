@@ -119,7 +119,6 @@ int check_white(float prgb) {
 int main(int argc, char** argv) {
 
     zed = new Camera(VGA);
-	WhitelineFilter wl_filter;
  
     printf("Initializing ZED\n");
     sl::zed::InitParams params;
@@ -143,6 +142,7 @@ int main(int argc, char** argv) {
     // ROS Things
 
     ros::init(argc, argv, "zed_ros_node");
+    WhitelineFilter wl_filter;
     ros::NodeHandle nh;
     sensor_msgs::PointCloud2 output_red;
     sensor_msgs::PointCloud2 output_blue;
@@ -172,88 +172,88 @@ int main(int argc, char** argv) {
     red_cloud.clear();
     blue_cloud.clear();
     white_cloud.clear();
-    cv::Mat image(height, width, CV_8UC4, 1)
+    cv::Mat image(height, width, CV_8UC4, 1);
 
     printf("Entering main loop\n");
     while (nh.ok()) {
 
         if (!zed->grab(dm_type)) { 
-	    index4 = 0;
+		index4 = 0;
 
-	    gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA);
-	    //gpu_cloud = zed->normalizeMeasure_gpu(MEASURE::XYZBGRA);
-	    point_step = gpu_cloud.channels * gpu_cloud.getDataSize();
-	    row_step = point_step * width;
-	    cpu_cloud = (float*) malloc(row_step * height);
-
-	    cudaError_t err = cudaMemcpy2D(
+		gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA);
+		//gpu_cloud = zed->normalizeMeasure_gpu(MEASURE::XYZBGRA);
+		point_step = gpu_cloud.channels * gpu_cloud.getDataSize();
+		row_step = point_step * width;
+		cpu_cloud = (float*) malloc(row_step * height);
+		cudaError_t err = cudaMemcpy2D(
 			cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(),
 			row_step, height, cudaMemcpyDeviceToHost
 		);
-		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB)
-	    cv::Mat cv_filteredImage = wl_filter.findLines(image);
-		
-        for (int i = 0; i < size; i++) {
+		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
+		cv::Mat cv_filteredImage = wl_filter.findLines(image);
+/*
+		printf("Image Width: %d\n", image.cols);
+		printf("Image Height: %d\n", image.rows);
+		printf("Cloud Width: %d\n", width);
+		printf("Could Height: %d\n", height);
+*/			
+        	for (int i = 0; i < size; i++) {
+				
 			if (cpu_cloud[index4 + 2] > 0) { 
-                index4 += 4;
-                continue;
-            }
+	                	index4 += 4;
+	        		continue;
+	        	}
 			else if (check_red(cpu_cloud[index4+3])) {
-				point.y = -cpu_cloud[index4++];
-				point.z = cpu_cloud[index4++];
-        	    point.x = -cpu_cloud[index4++];
-        	    point.rgb = cpu_cloud[index4++];//0xffff0000; index4++;
-				red_cloud.push_back(point);
+					point.y = -cpu_cloud[index4++];
+					point.z = cpu_cloud[index4++];
+	        	    point.x = -cpu_cloud[index4++];
+	        	    point.rgb = cpu_cloud[index4++];//0xffff0000; index4++;
+					red_cloud.push_back(point);
 			}
 			else if (check_blue(cpu_cloud[index4+3])) {
-				point.y = -cpu_cloud[index4++];
-        	    point.z = cpu_cloud[index4++];
-        	    point.x = -cpu_cloud[index4++];
-        	    point.rgb = cpu_cloud[index4++];//0xff0000ff; index4++;
-				blue_cloud.push_back(point);
+					point.y = -cpu_cloud[index4++];
+	        	    point.z = cpu_cloud[index4++];
+	        	    point.x = -cpu_cloud[index4++];
+	        	    point.rgb = cpu_cloud[index4++];//0xff0000ff; index4++;
+					blue_cloud.push_back(point);
 			}
-		
-			printf("Image Width: %d", image.cols);
-			printf("Image Height: %d", image.rows);
-			printf("Cloud Width: %d", width);
-			printf("Could Height: %d", height);
-		
+			
 			else if (cv_filteredImage.at<unsigned char>((index4/4)/width,(index4/4)%width) != 0) {//check_white(cpu_cloud[index4+3])) {
-				point.y = -cpu_cloud[index4++];
-        	    point.z = cpu_cloud[index4++];
-        	    point.x = -cpu_cloud[index4++];
-        	    point.rgb = cpu_cloud[index4++];//0xffffffff; index4++;
-				white_cloud.push_back(point);
+					point.y = -cpu_cloud[index4++];
+	        	    point.z = cpu_cloud[index4++];
+	        	    point.x = -cpu_cloud[index4++];
+	        	    point.rgb = cpu_cloud[index4++];//0xffffffff; index4++;
+					white_cloud.push_back(point);
 			}
 			else {	
-				index4 += 4;
+					index4 += 4;
 			}
-	    }
-        pcl::toROSMsg(red_cloud, output_red); // Convert the point cloud to a ROS message
-        output_red.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
-        output_red.header.stamp = ros::Time::now();
-        output_red.is_bigendian = false;
-        output_red.is_dense = false;
-        pub_red_cloud.publish(output_red);
-	    red_cloud.clear();
-	    pcl::toROSMsg(blue_cloud, output_blue);
-        output_blue.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
-        output_blue.header.stamp = ros::Time::now();
-        output_blue.is_bigendian = false;
-        output_blue.is_dense = false;
-        pub_blue_cloud.publish(output_blue);
-	    blue_cloud.clear();
-	    pcl::toROSMsg(white_cloud, output_white); // Convert the point cloud to a ROS message
-        output_white.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
-        output_white.header.stamp = ros::Time::now();
-        output_white.is_bigendian = false;
-        output_white.is_dense = false;
-        pub_white_cloud.publish(output_white);
-	    white_cloud.clear();
-	    free(cpu_cloud);
+		}
+	        pcl::toROSMsg(red_cloud, output_red); // Convert the point cloud to a ROS message
+	        output_red.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
+	        output_red.header.stamp = ros::Time::now();
+	        output_red.is_bigendian = false;
+	        output_red.is_dense = false;
+	        pub_red_cloud.publish(output_red);
+		red_cloud.clear();
+		pcl::toROSMsg(blue_cloud, output_blue);
+        	output_blue.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
+        	output_blue.header.stamp = ros::Time::now();
+        	output_blue.is_bigendian = false;
+        	output_blue.is_dense = false;
+        	pub_blue_cloud.publish(output_blue);
+		blue_cloud.clear();
+		pcl::toROSMsg(white_cloud, output_white); // Convert the point cloud to a ROS message
+        	output_white.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
+        	output_white.header.stamp = ros::Time::now();
+        	output_white.is_bigendian = false;
+        	output_white.is_dense = false;
+        	pub_white_cloud.publish(output_white);
+		white_cloud.clear();
+		free(cpu_cloud);
 		loop_rate.sleep();
+	    }	
     }
-
     delete zed;
     return 0;
-}
+}	

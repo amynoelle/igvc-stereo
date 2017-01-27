@@ -40,6 +40,15 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
 )
 
+
+##############################################################################
+# DYNAMIC RECONFIGURE OPTIONS
+
+generate_dynamic_reconfigure_options(
+  cfg/line_filter.cfg
+  #...
+)
+
 catkin_package(
   CATKIN_DEPENDS
     roscpp
@@ -51,6 +60,7 @@ catkin_package(
     tf2_ros
     pcl_conversions
 )
+
 
 ###############################################################################
 # INCLUDES

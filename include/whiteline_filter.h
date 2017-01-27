@@ -6,7 +6,7 @@
 // Dynamic reconfigure includes.
 #include <dynamic_reconfigure/server.h>
 // Auto-generated from cfg/ directory.
-#include <usma_triclops/line_filter_paramsConfig.h>
+#include <igvc-stereo/line_filter_paramsConfig.h>
 
 class WhitelineFilter {
 public:
@@ -52,5 +52,4 @@ private:
 
 #endif // WHITELINE_FILTER_H
 
-whiteline_filter.h
 
