@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 
-project(igvc-stereo)
+project(igvc_stereo)
 
 # if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
 IF(NOT CMAKE_BUILD_TYPE)
@@ -24,6 +24,8 @@ else() # Ubuntu Desktop
     SET(CUDA_VERSION "8.0")
     message("*** On Ubuntu 14, change line 30 of CMakeLists.txt to CUDA 7.5")
 endif()
+
+
 find_package(OpenCV ${OCV_VERSION} COMPONENTS core highgui imgproc REQUIRED)
 find_package(CUDA ${CUDA_VERSION} REQUIRED)
 find_package(PCL REQUIRED)
@@ -37,6 +39,16 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   pcl_conversions
   nodelet
+  cv_bridge
+)
+
+
+##############################################################################
+# DYNAMIC RECONFIGURE OPTIONS
+
+generate_dynamic_reconfigure_options(
+  cfg/line_filter.cfg
+  #...
 )
 
 catkin_package(
@@ -50,6 +62,7 @@ catkin_package(
     tf2_ros
     pcl_conversions
 )
+
 
 ###############################################################################
 # INCLUDES
@@ -86,7 +99,7 @@ set(LINK_LIBRARIES
 
 ## This is the thing you were editing
 ## This is what is (probably) refered to in the .xml
-add_executable(zed-ros src/main.cpp)
+add_executable(zed-ros src/main.cpp src/whiteline_filter.cpp)
 target_link_libraries(zed-ros ${LINK_LIBRARIES})
 add_dependencies(zed-ros ${PROJECT_NAME}_gencfg)
 
@@ -105,6 +118,7 @@ install(TARGETS
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 #install(FILES
 #  nodelet_plugins.xml
 #  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

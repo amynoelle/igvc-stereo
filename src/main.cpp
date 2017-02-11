@@ -33,6 +33,15 @@
 #include <ros/ros.h>
 #include <opencv2/opencv.hpp>
 
+// 2016 Pipeline includes
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include "whiteline_filter.h"
+
 #include <zed/Camera.hpp>
 #include <zed/utils/GlobalDefine.hpp>
 
@@ -45,15 +54,6 @@
 #include <pcl/common/common_headers.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-/*
-#include <pcl/ModelCoefficients.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
-*/
-
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
@@ -64,30 +64,6 @@ using namespace std;
 Camera* zed;
 SENSING_MODE dm_type = STANDARD;
 
-/*
-
-    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
-    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-    // Create the segmentation object
-    pcl::SACSegmentation<pcl::PointXYZ> seg;
-    // Optional
-    seg.setOptimizeCoefficients (true);
-    // Mandatory
-    seg.setModelType (pcl::SACMODEL_LINE);
-    seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setDistanceThreshold (0.01);
-
-    seg.setInputCloud (cloud);
-    seg.segment (*inliers, *coefficients); 
-    // Extract the planar inliers from the input cloud
-    pcl::ExtractIndices<pcl::PointXYZ> extract;
-    extract.setInputCloud (cloud_filtered);
-    extract.setIndices (inliers);
-    extract.setNegative (false);
-
-    // Get the points associated with the planar surface
-    extract.filter (*cloud_plane);
-*/
 
 int check_red(float prgb) {
     uint32_t rgb = *reinterpret_cast<int*>(&prgb);
@@ -140,8 +116,8 @@ int main(int argc, char** argv) {
     printf("Initializing ZED\n");
     sl::zed::InitParams params;
     params.mode = PERFORMANCE;
-    params.unit = METER; // Scale to fit OpenGL world
-    params.coordinate = RIGHT_HANDED; // OpenGL compatible
+    params.unit = METER; 
+    params.coordinate = RIGHT_HANDED; 
     params.verbose = true;
 
     ERRCODE err = zed->init(params);
@@ -159,6 +135,7 @@ int main(int argc, char** argv) {
     // ROS Things
 
     ros::init(argc, argv, "zed_ros_node");
+    WhitelineFilter wl_filter;
     ros::NodeHandle nh;
     sensor_msgs::PointCloud2 output_red;
     sensor_msgs::PointCloud2 output_blue;
@@ -170,6 +147,7 @@ int main(int argc, char** argv) {
     ros::Publisher pub_red_cloud = nh.advertise<sensor_msgs::PointCloud2> (red_cloud_topic, 2);
     ros::Publisher pub_blue_cloud = nh.advertise<sensor_msgs::PointCloud2> (blue_cloud_topic, 2);
     ros::Publisher pub_white_cloud = nh.advertise<sensor_msgs::PointCloud2> (white_cloud_topic, 2);
+
     ros::Rate loop_rate(30);
 
     printf("Allocating Data\n");
@@ -187,79 +165,90 @@ int main(int argc, char** argv) {
     red_cloud.clear();
     blue_cloud.clear();
     white_cloud.clear();
+    cv::Mat image(height, width, CV_8UC4, 1);
 
     printf("Entering main loop\n");
     while (nh.ok()) {
 
         if (!zed->grab(dm_type)) { 
-	    index4 = 0;
+		index4 = 0;
 
-	    gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA);
-	    //gpu_cloud = zed->normalizeMeasure_gpu(MEASURE::XYZBGRA);
-	    point_step = gpu_cloud.channels * gpu_cloud.getDataSize();
-	    row_step = point_step * width;
-	    cpu_cloud = (float*) malloc(row_step * height);
+		gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA);
+		point_step = gpu_cloud.channels * gpu_cloud.getDataSize();
+		row_step = point_step * width;
+		cpu_cloud = (float*) malloc(row_step * height);
+		cudaError_t err = cudaMemcpy2D(
+			cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(),
+			row_step, height, cudaMemcpyDeviceToHost
+		);
+		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
+		cv::Mat cv_filteredImage = wl_filter.findLines(image);
 
-	    cudaError_t err = cudaMemcpy2D(
-		cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(),
-		row_step, height, cudaMemcpyDeviceToHost
-	    );
-            for (int i = 0; i < size; i++) {
-                if (cpu_cloud[index4 + 2] > 0) { 
-                    index4 += 4;
-                    continue;
-                }
-		else if (check_red(cpu_cloud[index4+3])) {
-			point.y = -cpu_cloud[index4++];
-        	        point.z = cpu_cloud[index4++];
-        	        point.x = -cpu_cloud[index4++];
-        	        point.rgb = cpu_cloud[index4++];//0xffff0000; index4++;
-			red_cloud.push_back(point);
+		//wl_filter.displayThreshold();
+		//wl_filter.displayCyan();
+		//wl_filter.filterControl();
+
+        	for (int i = 0; i < size; i++) {
+			cv::Vec3b wl_point = cv_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
+
+			if (cpu_cloud[index4 + 2] > 0) { 
+	                	index4 += 4;
+	        		continue;
+	        	}
+			else if (check_red(cpu_cloud[index4+3])) {
+				point.y = -cpu_cloud[index4++];
+				point.z = cpu_cloud[index4++];
+	        		point.x = -cpu_cloud[index4++];
+	        		point.rgb = cpu_cloud[index4++];
+				red_cloud.push_back(point);
+			}
+			else if (check_blue(cpu_cloud[index4+3])) {
+				point.y = -cpu_cloud[index4++];
+	        		point.z = cpu_cloud[index4++];
+	        		point.x = -cpu_cloud[index4++];
+	        		point.rgb = cpu_cloud[index4++];
+				blue_cloud.push_back(point);
+			}
+			
+			else if (wl_point[0] == 255 && wl_point[1] == 255) {
+				point.y = -cpu_cloud[index4++];
+	        		point.z = cpu_cloud[index4++];
+	        		point.x = -cpu_cloud[index4++];
+	        		point.rgb = cpu_cloud[index4++];
+				white_cloud.push_back(point);
+			}
+			else {	
+					index4 += 4;
+			}
+
 		}
-		else if (check_blue(cpu_cloud[index4+3])) {
-			point.y = -cpu_cloud[index4++];
-        	        point.z = cpu_cloud[index4++];
-        	        point.x = -cpu_cloud[index4++];
-        	        point.rgb = cpu_cloud[index4++];//0xff0000ff; index4++;
-			blue_cloud.push_back(point);
-		}
-		else if (check_white(cpu_cloud[index4+3])) {
-			point.y = -cpu_cloud[index4++];
-        	        point.z = cpu_cloud[index4++];
-        	        point.x = -cpu_cloud[index4++];
-        	        point.rgb = cpu_cloud[index4++];//0xffffffff; index4++;
-			white_cloud.push_back(point);
-		}
-		else {	
-		     index4 += 4;
-		}        
-	    }
-            pcl::toROSMsg(red_cloud, output_red); // Convert the point cloud to a ROS message
-            output_red.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
-            output_red.header.stamp = ros::Time::now();
-            output_red.is_bigendian = false;
-            output_red.is_dense = false;
-            pub_red_cloud.publish(output_red);
-	    red_cloud.clear();
-	    pcl::toROSMsg(blue_cloud, output_blue);
-            output_blue.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
-            output_blue.header.stamp = ros::Time::now();
-            output_blue.is_bigendian = false;
-            output_blue.is_dense = false;
-            pub_blue_cloud.publish(output_blue);
-	    blue_cloud.clear();
-	    pcl::toROSMsg(white_cloud, output_white); // Convert the point cloud to a ROS message
-            output_white.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
-            output_white.header.stamp = ros::Time::now();
-            output_white.is_bigendian = false;
-            output_white.is_dense = false;
-            pub_white_cloud.publish(output_white);
-	    white_cloud.clear();
-	    free(cpu_cloud);
-        }
-	loop_rate.sleep();
+	        pcl::toROSMsg(red_cloud, output_red); // Convert the point cloud to a ROS message
+	        output_red.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
+	        output_red.header.stamp = ros::Time::now();
+	        output_red.is_bigendian = false;
+	        output_red.is_dense = false;
+	        pub_red_cloud.publish(output_red);
+		red_cloud.clear();
+		pcl::toROSMsg(blue_cloud, output_blue);
+        	output_blue.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
+        	output_blue.header.stamp = ros::Time::now();
+        	output_blue.is_bigendian = false;
+        	output_blue.is_dense = false;
+        	pub_blue_cloud.publish(output_blue);
+		blue_cloud.clear();
+		pcl::toROSMsg(white_cloud, output_white); // Convert the point cloud to a ROS message
+        	output_white.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
+        	output_white.header.stamp = ros::Time::now();
+        	output_white.is_bigendian = false;
+        	output_white.is_dense = false;
+        	pub_white_cloud.publish(output_white);
+		white_cloud.clear();
+		free(cpu_cloud);
+		
+		ros::spinOnce();
+		loop_rate.sleep();
+	    }	
     }
-
     delete zed;
     return 0;
-}
+}	
