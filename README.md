@@ -43,6 +43,8 @@
 
 ### ROS Networking
 #### ON JETSON TK1:	
+##### Jetson IP = 192.168.2.201
+##### Remote IP = 192.168.2.200
 1. echo export ROS_MASTER_URI=http://[REMOTE_PC_IP]:11311 >> ~/.bashrc
 2. echo export ROS_HOSTNAME=[JETSON_IP] >> ~/.bashrc
 3. echo export ROS_MASTER_URI=http://[REMOTE_PC_IP]:11311 >> ~/[CATKIN_WORKSPACE]/devel/setup.sh
@@ -52,3 +54,4 @@
 #### ON REMOTE PC
 1. echo export ROS_MASTER_URI=http://localhost:11311 >> ~/.bashrc
 2. echo export ROS_HOSTNAME=[PC_IP] >> ~/.bashrc
+3. echo export ROSLAUNCH_SSH_UNKNOWN = 1 >> ~/.bashrc
