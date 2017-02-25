@@ -41,6 +41,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include "whiteline_filter.h"
+#include "rbflag_filter.h"
 
 #include <zed/Camera.hpp>
 #include <zed/utils/GlobalDefine.hpp>
@@ -136,6 +137,7 @@ int main(int argc, char** argv) {
 
     ros::init(argc, argv, "zed_ros_node");
     WhitelineFilter wl_filter;
+    RBflagFilter rb_filter;
     ros::NodeHandle nh;
     sensor_msgs::PointCloud2 output_red;
     sensor_msgs::PointCloud2 output_blue;
@@ -183,6 +185,8 @@ int main(int argc, char** argv) {
 		);
 		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
 		cv::Mat cv_filteredImage = wl_filter.findLines(image);
+		cv::Mat r_filteredImage = rb_filter.findRed(image);
+		cv::Mat b_filteredImage = rb_filter.findBlu(image);
 
 		//wl_filter.displayThreshold();
 		//wl_filter.displayCyan();
@@ -190,19 +194,21 @@ int main(int argc, char** argv) {
 
         	for (int i = 0; i < size; i++) {
 			cv::Vec3b wl_point = cv_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
+			cv::Vec3b r_point = r_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
+			cv::Vec3b b_point = b_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
 
 			if (cpu_cloud[index4 + 2] > 0) { 
 	                	index4 += 4;
 	        		continue;
 	        	}
-			else if (check_red(cpu_cloud[index4+3])) {
+			else if (r_point[0] == 255 && r_point[1] == 255) {	//check_red(cpu_cloud[index4+3])) {
 				point.y = -cpu_cloud[index4++];
 				point.z = cpu_cloud[index4++];
 	        		point.x = -cpu_cloud[index4++];
 	        		point.rgb = cpu_cloud[index4++];
 				red_cloud.push_back(point);
 			}
-			else if (check_blue(cpu_cloud[index4+3])) {
+			else if (b_point[0] == 255 && b_point[1] == 255) {	//check_blue(cpu_cloud[index4+3])) {
 				point.y = -cpu_cloud[index4++];
 	        		point.z = cpu_cloud[index4++];
 	        		point.x = -cpu_cloud[index4++];

@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8.3)
-
 project(igvc_stereo)
 
 # if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
@@ -100,7 +99,7 @@ set(LINK_LIBRARIES
 
 ## This is the thing you were editing
 ## This is what is (probably) refered to in the .xml
-add_executable(zed-ros src/main.cpp src/whiteline_filter.cpp)
+add_executable(zed-ros src/main.cpp src/whiteline_filter.cpp src/rbflag_filter.cpp)
 target_link_libraries(zed-ros ${LINK_LIBRARIES})
 add_dependencies(zed-ros ${PROJECT_NAME}_gencfg)
 
