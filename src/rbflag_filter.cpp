@@ -6,23 +6,26 @@
 
 RBflagFilter::RBflagFilter()
 {
-     this->R_H_Max = 185; // 203
-	 this->R_H_Min = 0;
-	 this->R_S_Max = 200;
-	 this->R_S_Min = 0;
-	 this->R_V_Max = 200;
-	 this->R_V_Min = 0;
-	 this->B_H_Max = 200;
-	 this->B_H_Min = 0;
-	 this->B_S_Max = 200;
-	 this->B_S_Min = 0;
-	 this->B_V_Max = 200;
-	 this->B_V_Min = 0;
+	this->R_H_Max = 185; // 203
+	this->R_H_Min = 0;
+	this->R_S_Max = 200;
+	this->R_S_Min = 0;
+	this->R_V_Max = 200;
+	this->R_V_Min = 0;
+	this->B_H_Max = 200;
+	this->B_H_Min = 0;
+	this->B_S_Max = 200;
+	this->B_S_Min = 0;
+	this->B_V_Max = 200;
+	this->B_V_Min = 0;
 	this->erosion_size = 1;
 
-    dynamic_reconfigure::Server<igvc_stereo::rbflag_filter_paramsConfig>::CallbackType cb;
-    cb = boost::bind(&RBflagFilter::configCallback, this, _1, _2);
-    dr_srv_.setCallback(cb);
+	ros::init( NULL, NULL, "zed_ros_rb");
+	ros::NodeHandle nh;
+	dsrv_ = new dynamic_reconfigure::Server<igvc_stereo::rbflag_filter_paramsConfig>(nh);
+	dynamic_reconfigure::Server<igvc_stereo::rbflag_filter_paramsConfig>::CallbackType cb;
+	cb = boost::bind(&RBflagFilter::configCallback, this, _1, _2);
+    	dsrv_->setCallback(cb);
 }
 
 void RBflagFilter::configCallback(igvc_stereo::rbflag_filter_paramsConfig &config, uint32_t level)
@@ -74,13 +77,14 @@ cv::Mat RBflagFilter::findRed(const cv::Mat& src_image)
     cv::inRange(this->blur_image, cv::Scalar(this->R_H_Min, this->R_S_Min, this->R_V_Min), cv::Scalar(this->R_H_Max, this->R_S_Max, this->R_V_Max), this->red_thresh_image);
 
     // Erode the image
-    cv::Mat element = getStructuringElement(
+/*    cv::Mat element = getStructuringElement(
         cv::MORPH_ELLIPSE, cv::Size(2 * erosion_size + 1, 2 * erosion_size + 1),
         cv::Point(erosion_size, erosion_size));
     cv::erode(this->red_thresh_image, this->red_eroded_image, element);
-
+*/
     //return eroded image;
-    return this->red_eroded_image;
+//    return this->red_eroded_image;
+	return this->red_thresh_image;
 }
 
 /**
