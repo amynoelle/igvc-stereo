@@ -4,7 +4,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "rbflag_filter.h"
 
-RBflagFilter::RBflagFilter()
+RBflagFilter::RBflagFilter(ros::NodeHandle& nh)
 {
 	this->R_H_Max = 185; // 203
 	this->R_H_Min = 0;
@@ -20,8 +20,8 @@ RBflagFilter::RBflagFilter()
 	this->B_V_Min = 0;
 	this->erosion_size = 1;
 
-	ros::init( NULL, NULL, "zed_ros_rb");
-	ros::NodeHandle nh;
+	//ros::init( NULL, NULL, "zed_ros_rb");
+	//ros::NodeHandle nh("rb_flag");
 	dsrv_ = new dynamic_reconfigure::Server<igvc_stereo::rbflag_filter_paramsConfig>(nh);
 	dynamic_reconfigure::Server<igvc_stereo::rbflag_filter_paramsConfig>::CallbackType cb;
 	cb = boost::bind(&RBflagFilter::configCallback, this, _1, _2);
@@ -66,6 +66,7 @@ void RBflagFilter::configCallback(igvc_stereo::rbflag_filter_paramsConfig &confi
  */
 cv::Mat RBflagFilter::findRed(const cv::Mat& src_image)
 {
+    ros::spinOnce();
     // this->original_image = src_image;
     // Convert the BGR image to Gray scale
     cvtColor(this->original_image, this->hsv_image, CV_BGR2HSV);

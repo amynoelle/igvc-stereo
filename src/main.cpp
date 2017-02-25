@@ -143,9 +143,10 @@ int main(int argc, char** argv) {
     */
 
     ros::init(argc, argv, "zed_ros_node");
-    WhitelineFilter wl_filter;
-    RBflagFilter rb_filter;
     ros::NodeHandle nh;
+    ros::NodeHandle nh_flags("rb_flag");
+    RBflagFilter rb_filter(nh_flags);
+    WhitelineFilter wl_filter;
     sensor_msgs::PointCloud2 output_red;
     sensor_msgs::PointCloud2 output_blue;
     sensor_msgs::PointCloud2 output_white;
