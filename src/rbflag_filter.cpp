@@ -44,7 +44,7 @@ void RBflagFilter::configCallback(igvc_stereo::rbflag_filter_paramsConfig &confi
 	B_V_Max = config.groups.filter.B_V_Max_param;
 	B_V_Min = config.groups.filter.B_V_Min_param;
 	erosion_size = config.groups.filter.erosion_size_param;
-	
+
 } // end configCallback()
 
 /**
