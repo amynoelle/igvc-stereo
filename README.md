@@ -41,6 +41,12 @@
 4. catkin_make zed-ros-wrapper
 5. source ./devel/setup.bash
 
+#### Recompile OpenCV
+1. cd ~/[CATKIN_WORKSPACE]/src
+2. git clone https://github.com/ros-perception/vision_opencv
+3. cd ..
+4. catkin_make --pkg vision_opencv
+
 ### ROS Networking
 #### ON JETSON TK1:	
 ##### Jetson IP = 192.168.2.201
