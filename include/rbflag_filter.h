@@ -26,7 +26,7 @@ public:
 
 private:
     //! Dynamic reconfigure server.
-	//dynamic_reconfigure::Server<igvc_stereo::rbflag_filter_paramsConfig> dr_srv_;
+	dynamic_reconfigure::Server<igvc_stereo::rbflag_filter_paramsConfig>* dsrv_;
 	int R_H_Max = 185; // 203
 	int R_H_Min = 0;
 	int R_S_Max = 200;
