@@ -48,26 +48,20 @@ void RBflagFilter::configCallback(igvc_stereo::rbflag_filter_paramsConfig &confi
 } // end configCallback()
 
 /**
- * @brief WhitelineFilter::findLines This function finds the white lines in the
- * src_image
- * @param src_image the original image to find white lines in
- * @param rtrn_image the original image with cyan lines drawn where the white
- * lines were detected
- * @param lines a vector of start and end points for each line found
+ * @brief RBflagFilter::findRed This function finds the red flags in the src_image
+ * @param src_image the original image to find red in
+ * @param rtrn_image a threshold image where white is the flags found
  *
- *  It Uses the following algorithm to find white lines:
- *     1. turn image into grayscale
+ *  It Uses the following algorithm to find red flags:
+ *     1. convert image to HSV
  *     2. blur the image
  *     3. run it through a threshold filter using THRESH_TO_ZERO mode
- *     4. run it through an erosion filter
- *     5. run it through a Canny edge detector
- *     6. finally, take this processed image and find the lines using
- * Probabilistic Hough Transform HoughLinesP
+ *
  */
 cv::Mat RBflagFilter::findRed(const cv::Mat& src_image)
 {
     ros::spinOnce();
-    // this->original_image = src_image;
+    this->original_image = src_image;
     // Convert the BGR image to Gray scale
     cvtColor(this->original_image, this->hsv_image, CV_BGR2HSV);
 
@@ -89,25 +83,19 @@ cv::Mat RBflagFilter::findRed(const cv::Mat& src_image)
 }
 
 /**
- * @brief WhitelineFilter::findLines This function finds the white lines in the
- * src_image
- * @param src_image the original image to find white lines in
- * @param rtrn_image the original image with cyan lines drawn where the white
- * lines were detected
- * @param lines a vector of start and end points for each line found
+ * @brief RBflagFilter::findBlu This function finds the blue flags in the src_image
+ * @param src_image the original image to find blue in
+ * @param rtrn_image a threshold image where white is the flags found
  *
- *  It Uses the following algorithm to find white lines:
- *     1. turn image into grayscale
+ *  It Uses the following algorithm to find blue flags:
+ *     1. convert image to HSV
  *     2. blur the image
  *     3. run it through a threshold filter using THRESH_TO_ZERO mode
- *     4. run it through an erosion filter
- *     5. run it through a Canny edge detector
- *     6. finally, take this processed image and find the lines using
- * Probabilistic Hough Transform HoughLinesP
+ *
  */
 cv::Mat RBflagFilter::findBlu(const cv::Mat& src_image)
 {
-    // this->original_image = src_image;
+    this->original_image = src_image;
     // Convert the BGR image to Gray scale
     cvtColor(this->original_image, this->hsv_image, CV_BGR2HSV);
 
@@ -146,7 +134,7 @@ void RBflagFilter::filterControl()
 }
 
 /**
- * @brief whiteline_filter::displayOriginal Use OpenCV imShow to display the
+ * @brief RBflagFilter::displayRedBlurred Use OpenCV imShow to display the
  *Original image in a window
  *
  * This function reduces the size of the picture to 400x300
@@ -168,7 +156,7 @@ void RBflagFilter::displayOriginal()
 
 
 /**
- * @brief whiteline_filter::displayOriginal Use OpenCV imShow to display the
+ * @brief RBflagFilter::displayBluBlurred Use OpenCV imShow to display the
  *Blurred image in a window
  *
  * This function reduces the size of the picture to 400x300
@@ -188,7 +176,7 @@ void RBflagFilter::displayBlurred()
 }
 
 /**
- * @brief whiteline_filter::displayOriginal Use OpenCV imShow to display the
+ * @brief RBflagFilter::displayRedThreshold Use OpenCV imShow to display the
  *Threshold image in a window
  *
  * This function reduces the size of the picture to 400x300
@@ -209,7 +197,7 @@ void RBflagFilter::displayRedThreshold()
 }
 
 /**
- * @brief whiteline_filter::displayOriginal Use OpenCV imShow to display the
+ * @brief RBflagFilter::displayBluThreshold Use OpenCV imShow to display the
  *Threshold image in a window
  *
  * This function reduces the size of the picture to 400x300
@@ -230,7 +218,7 @@ void RBflagFilter::displayBluThreshold()
 }
 
 /**
- * @brief whiteline_filter::displayOriginal Use OpenCV imShow to display the
+ * @brief RBflagFilter::displayRedEroded Use OpenCV imShow to display the
  *Eroded image in a window
  *
  * This function reduces the size of the picture to 400x300
@@ -251,7 +239,7 @@ void RBflagFilter::displayRedEroded()
 }
 
 /**
- * @brief whiteline_filter::displayOriginal Use OpenCV imShow to display the
+ * @brief RBflagFilter::displayBluEroded Use OpenCV imShow to display the
  *Eroded image in a window
  *
  * This function reduces the size of the picture to 400x300
