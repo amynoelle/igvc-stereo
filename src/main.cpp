@@ -1,27 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-//
-// Copyright (c) 2016, STEREOLABS.
-//
-// All rights reserved.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
 ///////////////////////////////////////////////////////////////////////////
-
-
-/************************************************************************************
- ** This sample demonstrates how to use PCL (Point Cloud Library) with the ZED SDK **
- ************************************************************************************/
 
 #include <stdio.h>
 #include <string.h>
@@ -64,50 +42,6 @@ using namespace std;
 
 Camera* zed;
 SENSING_MODE dm_type = STANDARD;
-
-
-int check_red(float prgb) {
-    uint32_t rgb = *reinterpret_cast<int*>(&prgb);
-    uint8_t r = (rgb >> 16) & 0x0000ff;
-    uint8_t g = (rgb >> 8) & 0x0000ff;
-    uint8_t b = (rgb) & 0x0000ff;
-
-    float ratio_t = (float)(b + g)/((float)r+1);
-    float ratio_c = (float) (b)/((float) g);
-
-    if (ratio_t < 1.6 && ratio_c < 1.3 && ratio_c > 0.7) return 1;
-    return 0;
-
-}
-
-int check_blue(float prgb) {
-    uint32_t rgb = *reinterpret_cast<int*>(&prgb);
-    uint8_t r = (rgb >> 16) & 0x0000ff;
-    uint8_t g = (rgb >> 8) & 0x0000ff;
-    uint8_t b = (rgb) & 0x0000ff;
-
-    float ratio_t = (float)(r + g)/((float)b+1);
-    float ratio_c = (float)(r)/((float)g);
-
-    if (ratio_t < 1.6 && ratio_c < 1.3 && ratio_c > 0.7) return 1;
-    return 0;
-
-}
-
-int check_white(float prgb) {
-    uint32_t rgb = *reinterpret_cast<int*>(&prgb);
-    uint8_t r = (rgb >> 16) & 0x0000ff;
-    uint8_t g = (rgb >> 8) & 0x0000ff;
-    uint8_t b = (rgb) & 0x0000ff;
-
-    float ratio_r = (float)(b + g)/((float)r+1);
-    float ratio_g = (float)(b + r)/((float)g+1);
-    float ratio_b = (float)(r + g)/((float)b+1);
-
-    if (ratio_r < 2.2 && ratio_r > 1.8 && ratio_g < 2.2 && ratio_g > 1.8 && ratio_b < 2.2 && ratio_b > 1.8) return 1;
-    return 0;
-
-}
 
 
 int main(int argc, char** argv) {
