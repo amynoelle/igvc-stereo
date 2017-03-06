@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
 			row_step, height, cudaMemcpyDeviceToHost
 		);
 		//Filter the image for white lines and red/blue flags
-		//cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
+		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
 		cv::Mat cv_filteredImage = wl_filter.findLines(image);
 		cv::Mat r_filteredImage = rb_filter.findRed(image);
 		cv::Mat b_filteredImage = rb_filter.findBlu(image);
