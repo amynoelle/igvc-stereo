@@ -1,4 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////
+// Main file for publishing point clouds with the ZED Camera on the 
+// Jetson TK1 board. This file is responsible for initilizing the ZED 
+// camera, ROS node, and filter classes. 
+// The main purpose of this file is to filter the ZED disparity images for 
+// white lines and red/blue flags, and then publish the resulting point 
+// cloud to ROS topics for use by the IGVC navigation.
 ///////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
