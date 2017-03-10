@@ -24,8 +24,7 @@
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
-#include "whiteline_filter.h"
-#include "rbflag_filter.h"
+#include "color_filter.h"
 
 #include <zed/Camera.hpp>
 #include <zed/utils/GlobalDefine.hpp>
@@ -85,8 +84,7 @@ int main(int argc, char** argv) {
     ros::init(argc, argv, "zed_ros_node");
     ros::NodeHandle nh;
     ros::NodeHandle nh_flags("rb_flag");
-    RBflagFilter rb_filter(nh_flags);
-    WhitelineFilter wl_filter;
+    ColorFilter color_filter;
     sensor_msgs::PointCloud2 output_red;
     sensor_msgs::PointCloud2 output_blue;
     sensor_msgs::PointCloud2 output_white;
@@ -125,6 +123,8 @@ int main(int argc, char** argv) {
 
         if (!zed->grab(dm_type)) {
 		index4 = 0;
+        cpu_cloud = zed->retrieveMeasure(MEASURE::XYZRGB);
+        /*
 		//Get image from ZED using the gpu buffer
 		gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA);
 		//Get size values for retrieved image
@@ -137,11 +137,12 @@ int main(int argc, char** argv) {
 			cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(),
 			row_step, height, cudaMemcpyDeviceToHost
 		);
+        */
 		//Filter the image for white lines and red/blue flags
 		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
-		cv::Mat cv_filteredImage = wl_filter.findLines(image);
-		cv::Mat r_filteredImage = rb_filter.findRed(image);
-		cv::Mat b_filteredImage = rb_filter.findBlu(image);
+		cv::Mat cv_filteredImage = color_filter.findLines(image);
+		cv::Mat r_filteredImage = color_filter.findRed(image);
+		cv::Mat b_filteredImage = color_filter.findBlu(image);
 
         	//Iterate through points in cloud
         	for (int i = 0; i < size; i++) {
