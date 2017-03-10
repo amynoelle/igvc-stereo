@@ -60,25 +60,24 @@ void RBflagFilter::configCallback(igvc_stereo::rbflag_filter_paramsConfig &confi
  */
 cv::Mat RBflagFilter::findRed(const cv::Mat& src_image)
 {
-    ros::spinOnce();
-    this->original_image = src_image;
-    // Convert the BGR image to Gray scale
-    cvtColor(this->original_image, this->hsv_image, CV_BGR2HSV);
+	ros::spinOnce();
+	this->original_image = src_image;
+	// Convert the BGR image to Gray scale
+	cvtColor(this->original_image, this->hsv_image, CV_BGR2HSV);
 
-    // Reduce resolution of image
-    cv::GaussianBlur(this->hsv_image, this->blur_image, cv::Size(7, 7), 0.0, 0.0, cv::BORDER_DEFAULT);
+	// Reduce resolution of image
+	cv::GaussianBlur(this->hsv_image, this->blur_image, cv::Size(7, 7), 0.0, 0.0, cv::BORDER_DEFAULT);
 
-    // Threshold the image
-    cv::inRange(this->blur_image, cv::Scalar(this->R_H_Min, this->R_S_Min, this->R_V_Min), cv::Scalar(this->R_H_Max, this->R_S_Max, this->R_V_Max), this->red_thresh_image);
+	// Threshold the image
+	cv::inRange(this->blur_image, cv::Scalar(this->R_H_Min, this->R_S_Min, this->R_V_Min), cv::Scalar(this->R_H_Max, this->R_S_Max, this->R_V_Max), this->red_thresh_image);
 
-    // Erode the image
-/*    cv::Mat element = getStructuringElement(
+	// Erode the image
+/*    	cv::Mat element = getStructuringElement(
         cv::MORPH_ELLIPSE, cv::Size(2 * erosion_size + 1, 2 * erosion_size + 1),
         cv::Point(erosion_size, erosion_size));
-    cv::erode(this->red_thresh_image, this->red_eroded_image, element);
+    	cv::erode(this->red_thresh_image, this->red_eroded_image, element);
 */
-    //return eroded image;
-//    return this->red_eroded_image;
+	//return eroded image;
 	return this->red_thresh_image;
 }
 
