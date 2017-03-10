@@ -46,8 +46,7 @@ find_package(catkin REQUIRED COMPONENTS
 # DYNAMIC RECONFIGURE OPTIONS
 
 generate_dynamic_reconfigure_options(
-  cfg/line_filter.cfg
-  cfg/rbflag_filter.cfg
+  cfg/color_filter.cfg
   #...
 )
 
