@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
 
         if (!zed->grab(dm_type)) {
 		index4 = 0;
-        cpu_cloud = zed->retrieveMeasure(MEASURE::XYZRGB);
+        cpu_cloud = (float*) zed->retrieveMeasure(MEASURE::XYZRGB).data;
         /*
 		//Get image from ZED using the gpu buffer
 		gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA);
