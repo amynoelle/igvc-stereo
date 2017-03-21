@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     Initialize ZED Camera
     */
     printf("Initializing ZED\n");
-    zed = new Camera(VGA);
+    zed = new Camera(HD720);
 
     sl::zed::InitParams params;
     params.mode = PERFORMANCE;
@@ -187,6 +187,9 @@ int main(int argc, char** argv) {
 
 		}
 		//Publish Red Flag Point Cloud
+		if (red_cloud.height == 0) {
+			red_cloud.push_back(pcl::PointXYZRGBA());
+		}
 		pcl::toROSMsg(red_cloud, output_red); // Convert the point cloud to a ROS message
 		output_red.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
 		output_red.header.stamp = ros::Time::now();
@@ -195,6 +198,9 @@ int main(int argc, char** argv) {
 		pub_red_cloud.publish(output_red);
 		red_cloud.clear();
         	//Publish Blue Flag Point Cloud
+		if (blue_cloud.height == 0) {
+			blue_cloud.push_back(pcl::PointXYZRGBA());
+		}
 		pcl::toROSMsg(blue_cloud, output_blue);
         	output_blue.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
        		output_blue.header.stamp = ros::Time::now();
@@ -203,6 +209,9 @@ int main(int argc, char** argv) {
        		pub_blue_cloud.publish(output_blue);
 		blue_cloud.clear();
         	//Publish White Line Point Cloud
+		if (white_cloud.height == 0){
+			white_cloud.push_back(pcl::PointXYZRGBA());
+		}
 		pcl::toROSMsg(white_cloud, output_white); // Convert the point cloud to a ROS message
        		output_white.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
        		output_white.header.stamp = ros::Time::now();
