@@ -123,8 +123,8 @@ int main(int argc, char** argv) {
 
         if (!zed->grab(dm_type)) {
 		index4 = 0;
-        cpu_cloud = zed->retrieveMeasure(MEASURE::XYZRGB);
-        /*
+        	//cpu_cloud = zed->retrieveMeasure(MEASURE::XYZRGBA);
+        
 		//Get image from ZED using the gpu buffer
 		gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA);
 		//Get size values for retrieved image
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
 			cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(),
 			row_step, height, cudaMemcpyDeviceToHost
 		);
-        */
+        
 		//Filter the image for white lines and red/blue flags
 		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
 		cv::Mat cv_filteredImage = color_filter.findLines(image);
