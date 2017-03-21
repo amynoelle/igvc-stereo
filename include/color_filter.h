@@ -24,18 +24,18 @@ private:
     void findPointsOnLines(const cv::Mat& cImage);
     cv::vector<cv::Vec4i> lines;
     std::vector<cv::Point2i> pixels;
-    int R_H_Max = 185; // 203
-    int R_H_Min = 0;
-    int R_S_Max = 200;
-    int R_S_Min = 0;
-    int R_V_Max = 200;
-    int R_V_Min = 0;
+    int R_H_Max = 255; // 203
+    int R_H_Min = 175;
+    int R_S_Max = 255;
+    int R_S_Min = 100;
+    int R_V_Max = 255;
+    int R_V_Min = 100;
     int B_H_Max = 200;
-    int B_H_Min = 0;
-    int B_S_Max = 200;
-    int B_S_Min = 0;
-    int B_V_Max = 200;
-    int B_V_Min = 0;
+    int B_H_Min = 140;
+    int B_S_Max = 255;
+    int B_S_Min = 120;
+    int B_V_Max = 255;
+    int B_V_Min = 120;
     int thresh_val; // The threshold value used to identify white in the image
     int erosion_size; // The  size of our kernel to erode the image with
     int h_rho; // Distance resolution of the accumulator in pixels (hough transform)
