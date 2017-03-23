@@ -17,6 +17,9 @@ public:
     cv::Mat findLines(const cv::Mat& src_image);
     cv::Mat findRed(const cv::Mat& src_image);
     cv::Mat findBlu(const cv::Mat& src_image);
+    void displayOriginal();
+    void displayRedThreshold();
+    void displayBluThreshold();
 
 private:
     //! Dynamic reconfigure server.
@@ -44,9 +47,14 @@ private:
     int h_minLineLen; // Line segments shorter than that are rejected (hough transform)
     int h_maxLineGap; // Maximum allowed gap between points on the same line to link them (hough transform)
     cv::Mat original_image; // The original source image
+    cv::Mat red_image;
+    cv::Mat blu_image;
     cv::Mat gray_image; // The image after it is converted to grayscale
-    cv::Mat hsv_image;	// 
-    cv::Mat blur_image; // The image after it a blur effect is applied
+    cv::Mat hsv_image_red;	//
+    cv::Mat hsv_image_blu;
+    cv::Mat blur_image; 
+    cv::Mat blur_image_red; // The image after it a blur effect is applied
+    cv::Mat blur_image_blu;
     cv::Mat thresh_image; // The image after the colors are categorized by defined threshold values
     cv::Mat eroded_image; // The image after an erosion filter is applied
     cv::Mat canny_image; // The image after canny edge detection is complete

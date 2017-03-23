@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <ctime>
 #include <chrono>
 #include <thread>
@@ -54,7 +55,7 @@ int main(int argc, char** argv) {
     Initialize ZED Camera
     */
     printf("Initializing ZED\n");
-    zed = new Camera(HD720);
+    zed = new Camera(VGA); //HD720);
 
     sl::zed::InitParams params;
     params.mode = PERFORMANCE;
@@ -118,9 +119,10 @@ int main(int argc, char** argv) {
     white_cloud.clear();
     cv::Mat image(height, width, CV_8UC4, 1);
 
+
     printf("Entering main loop\n");
     while (nh.ok()) {
-
+	clock_t start = clock();
         if (!zed->grab(dm_type)) {
 		index4 = 0;
 
@@ -138,12 +140,15 @@ int main(int argc, char** argv) {
 			cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(),
 			row_step, height, cudaMemcpyDeviceToHost
 		);
-        
+
 		//Filter the image for white lines and red/blue flags
 		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
 		cv::Mat cv_filteredImage = color_filter.findLines(image);
 		cv::Mat r_filteredImage = color_filter.findRed(image);
 		cv::Mat b_filteredImage = color_filter.findBlu(image);
+		color_filter.displayOriginal();
+		color_filter.displayRedThreshold();
+		color_filter.displayBluThreshold();
 
         	//Iterate through points in cloud
         	for (int i = 0; i < size; i++) {
@@ -168,9 +173,9 @@ int main(int argc, char** argv) {
 			//Check if point exists in blue image
 			else if (b_point[0] == 255 && b_point[1] == 255) {	//check_blue(cpu_cloud[index4+3])) {
 				point.y = -cpu_cloud[index4++];
-	        	point.z = cpu_cloud[index4++];
-	        	point.x = -cpu_cloud[index4++];
-	        	point.rgb = cpu_cloud[index4++];
+				point.z = cpu_cloud[index4++];
+				point.x = -cpu_cloud[index4++];
+				point.rgb = cpu_cloud[index4++];
 				blue_cloud.push_back(point);
 			}
 			//Check if point exists in white-line image
@@ -223,6 +228,7 @@ int main(int argc, char** argv) {
 		//Spin once updates dynamic_reconfigure values
 		ros::spinOnce();
 		loop_rate.sleep();
+		printf("Loop Time: %f \n", ((double)clock() - start)/CLOCKS_PER_SEC);
 	    }
     }
     delete zed;

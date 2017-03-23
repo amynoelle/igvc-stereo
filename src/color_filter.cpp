@@ -6,32 +6,31 @@
 
 ColorFilter::ColorFilter()
 {
-    this->thresh_val = 185; // 203
-    this->erosion_size = 1; // 2
-    this->h_rho = 1; // 1
-    this->h_theta = 180; // 180
-    this->h_thresh = 30; // 40
-    this->h_minLineLen = 21; // 20
-    this->h_maxLineGap = 20; // 30
-    this->lower_limit=118;
-    this->upper_limit=250;
-
-    this->R_H_Max = 185; // 203
+	this->thresh_val = 185; // 203
+	this->erosion_size = 1; // 2
+	this->h_rho = 1; // 1
+	this->h_theta = 180; // 180
+	this->h_thresh = 30; // 40
+	this->h_minLineLen = 21; // 20
+	this->h_maxLineGap = 20; // 30
+	this->lower_limit=118;
+	this->upper_limit=250;
+	this->R_H_Max = 80; // 203
 	this->R_H_Min = 0;
-	this->R_S_Max = 200;
-	this->R_S_Min = 0;
-	this->R_V_Max = 200;
-	this->R_V_Min = 0;
-	this->B_H_Max = 200;
-	this->B_H_Min = 0;
-	this->B_S_Max = 200;
-	this->B_S_Min = 0;
-	this->B_V_Max = 200;
-	this->B_V_Min = 0;
+	this->R_S_Max = 255;
+	this->R_S_Min = 89;
+	this->R_V_Max = 255;
+	this->R_V_Min = 50;
+	this->B_H_Max = 130;
+	this->B_H_Min = 70;
+	this->B_S_Max = 255;
+	this->B_S_Min = 170;
+	this->B_V_Max = 255;
+	this->B_V_Min = 120;
 
-    dynamic_reconfigure::Server<igvc_stereo::color_filter_paramsConfig>::CallbackType cb;
-    cb = boost::bind(&ColorFilter::configCallback, this, _1, _2);
-    dr_srv_.setCallback(cb);
+	dynamic_reconfigure::Server<igvc_stereo::color_filter_paramsConfig>::CallbackType cb;
+	cb = boost::bind(&ColorFilter::configCallback, this, _1, _2);
+	dr_srv_.setCallback(cb);
 }
 
 void ColorFilter::configCallback(igvc_stereo::color_filter_paramsConfig &config, uint32_t level)
@@ -47,7 +46,7 @@ void ColorFilter::configCallback(igvc_stereo::color_filter_paramsConfig &config,
     lower_limit=config.groups.hough.lowerLimit_param;
     upper_limit=config.groups.hough.upperLimit_param;
 
-    R_H_Max = config.groups.flags.R_H_Max_param; // 203
+	R_H_Max = config.groups.flags.R_H_Max_param; // 203
 	R_H_Min = config.groups.flags.R_H_Min_param;
 	R_S_Max = config.groups.flags.R_S_Max_param;
 	R_S_Min = config.groups.flags.R_S_Min_param;
@@ -180,15 +179,15 @@ void ColorFilter::findPointsOnLines(const cv::Mat& cImage)
  */
 cv::Mat ColorFilter::findRed(const cv::Mat& src_image)
 {
-	this->original_image = src_image;
+	this->red_image = src_image;
 	// Convert the BGR image to Gray scale
-	cvtColor(this->original_image, this->hsv_image, CV_BGR2HSV);
+	cvtColor(this->red_image, this->hsv_image_red, CV_BGR2HSV);
 
 	// Reduce resolution of image
-	cv::GaussianBlur(this->hsv_image, this->blur_image, cv::Size(7, 7), 0.0, 0.0, cv::BORDER_DEFAULT);
+	cv::GaussianBlur(this->hsv_image_red, this->blur_image_red, cv::Size(7, 7), 0.0, 0.0, cv::BORDER_DEFAULT);
 
 	// Threshold the image
-	cv::inRange(this->blur_image, cv::Scalar(this->R_H_Min, this->R_S_Min, this->R_V_Min), cv::Scalar(this->R_H_Max, this->R_S_Max, this->R_V_Max), this->red_thresh_image);
+	cv::inRange(this->blur_image_red, cv::Scalar(this->R_H_Min, this->R_S_Min, this->R_V_Min), cv::Scalar(this->R_H_Max, this->R_S_Max, this->R_V_Max), this->red_thresh_image);
 
 	// Erode the image
 /*    	cv::Mat element = getStructuringElement(
@@ -215,13 +214,13 @@ cv::Mat ColorFilter::findBlu(const cv::Mat& src_image)
 {
     this->original_image = src_image;
     // Convert the BGR image to Gray scale
-    cvtColor(this->original_image, this->hsv_image, CV_BGR2HSV);
+    cvtColor(this->original_image, this->hsv_image_blu, CV_BGR2HSV);
 
     // Reduce resolution of image
-    cv::GaussianBlur(this->hsv_image, this->blur_image, cv::Size(7, 7), 0.0, 0.0, cv::BORDER_DEFAULT);
+    cv::GaussianBlur(this->hsv_image_blu, this->blur_image_blu, cv::Size(7, 7), 0.0, 0.0, cv::BORDER_DEFAULT);
 
     // Threshold the image
-    cv::inRange(this->blur_image, cv::Scalar(this->B_H_Min, this->B_S_Min, this->B_V_Min), cv::Scalar(this->B_H_Max, this->B_S_Max, this->B_V_Max), this->blu_thresh_image);
+    cv::inRange(this->blur_image_blu, cv::Scalar(this->B_H_Min, this->B_S_Min, this->B_V_Min), cv::Scalar(this->B_H_Max, this->B_S_Max, this->B_V_Max), this->blu_thresh_image);
 
     // Erode the image
 /*    cv::Mat element = getStructuringElement(
@@ -233,6 +232,67 @@ cv::Mat ColorFilter::findBlu(const cv::Mat& src_image)
     return this->blu_thresh_image;
 }
 
+/**
+ * @brief RBflagFilter::displayRedBlurred Use OpenCV imShow to display the
+ *Original image in a window
+ *
+ * This function reduces the size of the picture to 400x300
+ */
+void ColorFilter::displayOriginal()
+{
+    try {
+        // Show the images in a window for debug purposes
+        cv::Mat disImage;
+        cv::resize(this->original_image, disImage, cv::Size(400, 300));
+        cv::imshow("Original Image", disImage);
+        cv::waitKey(3);
+    }
+    catch (cv::Exception& e) {
+        const char* err_msg = e.what();
+        std::cout << "exception caught: " << err_msg << std::endl;
+    }
+}
 
+/**
+ * @brief RBflagFilter::displayRedThreshold Use OpenCV imShow to display the
+ *Threshold image in a window
+ *
+ * This function reduces the size of the picture to 400x300
+ */
+void ColorFilter::displayRedThreshold()
+{
+    try {
+        // Show the images in a window for debug purposes
+        cv::Mat disImage;
+        cv::resize(this->red_thresh_image, disImage, cv::Size(400, 300));
+        cv::imshow("Red Threshold Image", disImage);
+        cv::waitKey(3);
+    }
+    catch (cv::Exception& e) {
+        const char* err_msg = e.what();
+        std::cout << "exception caught: " << err_msg << std::endl;
+    }
+}
+
+/**
+ * @brief RBflagFilter::displayBluThreshold Use OpenCV imShow to display the
+ *Threshold image in a window
+ *
+ * This function reduces the size of the picture to 400x300
+ */
+void ColorFilter::displayBluThreshold()
+{
+    try {
+        // Show the images in a window for debug purposes
+        cv::Mat disImage;
+        cv::resize(this->blu_thresh_image, disImage, cv::Size(400, 300));
+        cv::imshow("Blue Threshold Image", disImage);
+        cv::waitKey(3);
+    }
+    catch (cv::Exception& e) {
+        const char* err_msg = e.what();
+        std::cout << "exception caught: " << err_msg << std::endl;
+    }
+}
 
 
