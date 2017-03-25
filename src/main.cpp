@@ -131,11 +131,9 @@ int main(int argc, char** argv) {
 		//19% of execution time before here
 		
 		//Filter the image for white lines and red/blue flags
-		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
+		//cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
 
-		cv::Mat cv_filteredImage = color_filter.findLines(image);
-		//cv::Mat r_filteredImage = color_filter.findRed(image);
-		//cv::Mat b_filteredImage = color_filter.findBlu(image);
+		//cv::Mat cv_filteredImage = color_filter.findLines(image);
 		//color_filter.displayOriginal();
 		//color_filter.displayRedThreshold();
 		//color_filter.displayBluThreshold();
@@ -147,16 +145,15 @@ int main(int argc, char** argv) {
         	//Iterate through points in cloud
         	for (int i = 0; i < size; i++) {
 			//Get coresponding points for each cloud
-			cv::Vec3b wl_point = cv_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
-			//cv::Vec3b r_point  =  r_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
-			//cv::Vec3b b_point  =  b_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
+			//cv::Vec3b wl_point = cv_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
+
 			//Check for bad data
 			if (cpu_cloud[index4 + 2] > 0) {
 				index4 += 4;
 	        		continue;
 	        	}
 			//Check if point exists in red image
-			else if (color_filter.checkRed(cpu_cloud[index4+3])){//r_point[0] == 255 && r_point[1] == 255) {
+			else if (color_filter.checkRed(cpu_cloud[index4+3])){
 				point.y = -cpu_cloud[index4++];
 				point.z = cpu_cloud[index4++];
 	        		point.x = -cpu_cloud[index4++];
@@ -164,7 +161,7 @@ int main(int argc, char** argv) {
 				red_cloud.push_back(point);
 			}
 			//Check if point exists in blue image
-			else if (color_filter.checkBlu(cpu_cloud[index4+3])) {	//check_blue(cpu_cloud[index4+3])) {
+			else if (color_filter.checkBlu(cpu_cloud[index4+3])) {	
 				point.y = -cpu_cloud[index4++];
 				point.z = cpu_cloud[index4++];
 				point.x = -cpu_cloud[index4++];
@@ -172,7 +169,7 @@ int main(int argc, char** argv) {
 				blue_cloud.push_back(point);
 			}
 			//Check if point exists in white-line image
-			else if (wl_point[0] == 255 && wl_point[1] == 255) {
+			else if (color_filter.checkWhite(cpu_cloud[index4+3])){//wl_point[0] == 255 && wl_point[1] == 255) {
 				point.y = -cpu_cloud[index4++];
 		        	point.z = cpu_cloud[index4++];
 		        	point.x = -cpu_cloud[index4++];
