@@ -17,6 +17,9 @@ public:
     cv::Mat findLines(const cv::Mat& src_image);
     cv::Mat findRed(const cv::Mat& src_image);
     cv::Mat findBlu(const cv::Mat& src_image);
+    int rgb2hsv(uint32_t rgb);
+    bool checkRed(float rgb);
+    bool checkBlu(float rgb);
     void displayOriginal();
     void displayRedThreshold();
     void displayBluThreshold();

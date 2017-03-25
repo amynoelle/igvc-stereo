@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdio.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -165,6 +166,71 @@ void ColorFilter::findPointsOnLines(const cv::Mat& cImage)
         }
     }
 }
+
+
+int ColorFilter::rgb2hsv(uint32_t rgb){
+	uint8_t B = (rgb >> 16) & 0x0000ff;
+	uint8_t G = (rgb >> 8) & 0x0000ff;
+	uint8_t R = (rgb) & 0x0000ff;
+	double r = (double)R/255;
+	double g = (double)G/255;
+	double b = (double)B/255;
+	//printf("r: %d, g: %d, b: %d\n", R, G, B);
+	double min, max, delta, h, s, v;
+	int H, S, V;
+
+	min = r < g ? r : g;
+	min = min < b ? min : b;
+	
+	max = r > g ? r : g;
+	max = max > b ? max : b;
+
+	v = max;
+	delta = max - min;
+	if (max == 0) return 0;
+	if (delta == 0) ++delta; 
+	s = delta/max;
+
+	if (r == max) h = (g - b)/delta;
+	else if (g == max) h = 2.0 + (b - r)/delta;
+	else if (b == max) h = 4.0 + (r - g)/delta;
+
+	h *= 60;
+
+	if (h < 0) h = h + 360.0;
+	h = h*255.0/360.0;
+	H = int(h); S = int(s*255); V = int(v*255);
+	//printf("h: %d, s: %d, v: %d\n", H, S, V);
+
+	return (H << 16)|(S << 8)|(V);
+}
+
+bool ColorFilter::checkRed(float rgb) {
+	uint32_t color_uint = *(uint32_t*) & rgb;
+	unsigned char* color_uchar = (unsigned char*) &color_uint;
+	color_uint = ((uint32_t) color_uchar[0] << 16 | (uint32_t) color_uchar[1] << 8 | (uint32_t) color_uchar[2]);
+	int hsv = rgb2hsv(uint32_t(color_uint));
+	int h, s, v;
+	h = (hsv >> 16) & 0x0000ff;
+	s = (hsv >> 8) & 0x0000ff;
+	v = (hsv) & 0x0000ff;
+
+	return (h < this->R_H_Max && h > this->R_H_Min && s > R_S_Min && v > R_V_Min);
+}
+
+bool ColorFilter::checkBlu(float rgb) {
+	uint32_t color_uint = *(uint32_t*) & rgb;
+	unsigned char* color_uchar = (unsigned char*) &color_uint;
+	color_uint = ((uint32_t) color_uchar[0] << 16 | (uint32_t) color_uchar[1] << 8 | (uint32_t) color_uchar[2]);
+	int hsv = rgb2hsv(uint32_t(color_uint));
+	int h, s, v;
+	h = (hsv >> 16) & 0x0000ff;
+	s = (hsv >> 8) & 0x0000ff;
+	v = (hsv) & 0x0000ff;
+
+	return (h < this->B_H_Max && h > this->B_H_Min && s > B_S_Min && v > B_V_Min);
+}
+
 
 /**
  * @brief RBflagFilter::findRed This function finds the red flags in the src_image
