@@ -9,18 +9,18 @@ ColorFilter::ColorFilter()
 {
 	this->max_delt = 15;
 	this->min_val = 150;
-	this->R_H_Max = 80; // 203
-	this->R_H_Min = 170;
+	this->R_H_Max = 40; // 203
+	this->R_H_Min = 230;
 	this->R_S_Max = 255;
-	this->R_S_Min = 89;
+	this->R_S_Min = 190;
 	this->R_V_Max = 255;
-	this->R_V_Min = 50;
-	this->B_H_Max = 130;
-	this->B_H_Min = 70;
+	this->R_V_Min = 102;
+	this->B_H_Max = 200;
+	this->B_H_Min = 150;
 	this->B_S_Max = 255;
-	this->B_S_Min = 170;
+	this->B_S_Min = 150;
 	this->B_V_Max = 255;
-	this->B_V_Min = 120;
+	this->B_V_Min = 50;
 
 	dynamic_reconfigure::Server<igvc_stereo::color_filter_paramsConfig>::CallbackType cb;
 	cb = boost::bind(&ColorFilter::configCallback, this, _1, _2);
@@ -116,7 +116,7 @@ bool ColorFilter::checkRed(float rgb) {
 	h = (hsv >> 16) & 0x0000ff;
 	s = (hsv >> 8) & 0x0000ff;
 	v = (hsv) & 0x0000ff;
-//untested change
+
 	return ((h < this->R_H_Max || h > this->R_H_Min) && s > R_S_Min && v > R_V_Min);
 }
 
