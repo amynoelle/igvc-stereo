@@ -7,15 +7,8 @@
 
 ColorFilter::ColorFilter()
 {
-	this->thresh_val = 185; // 203
-	this->erosion_size = 1; // 2
-	this->h_rho = 1; // 1
-	this->h_theta = 180; // 180
-	this->h_thresh = 30; // 40
-	this->h_minLineLen = 21; // 20
-	this->h_maxLineGap = 20; // 30
-	this->lower_limit=118;
-	this->upper_limit=250;
+	this->max_delt = 15;
+	this->min_val = 150;
 	this->R_H_Max = 80; // 203
 	this->R_H_Min = 170;
 	this->R_S_Max = 255;
@@ -37,15 +30,8 @@ ColorFilter::ColorFilter()
 void ColorFilter::configCallback(igvc_stereo::color_filter_paramsConfig &config, uint32_t level)
 {
   // Set class variables to new values. They should match what is input at the dynamic reconfigure GUI.
-    thresh_val=config.groups.filter.thresh_val_param;
-    erosion_size=config.groups.filter.erosion_size_param;
-    h_rho=config.groups.hough.h_rho_param;
-    h_theta=config.groups.hough.h_theta_param;
-    h_thresh=config.groups.hough.h_thresh_param;
-    h_minLineLen=config.groups.hough.h_minLineLen_param;
-    h_maxLineGap=config.groups.hough.h_maxLineGap_param;
-    lower_limit=config.groups.hough.lowerLimit_param;
-    upper_limit=config.groups.hough.upperLimit_param;
+	max_delt = config.groups.lines.max_delt_param;
+	min_val = config.groups.lines.min_val_param;
 
 	R_H_Max = config.groups.flags.R_H_Max_param; // 203
 	R_H_Min = config.groups.flags.R_H_Min_param;
@@ -60,87 +46,6 @@ void ColorFilter::configCallback(igvc_stereo::color_filter_paramsConfig &config,
 	B_V_Max = config.groups.flags.B_V_Max_param;
 	B_V_Min = config.groups.flags.B_V_Min_param;
 } // end configCallback()
-
-/**
- * @brief WhitelineFilter::findLines This function finds the white lines in the
- * src_image
- * @param src_image the original image to find white lines in
- * @param rtrn_image the original image with cyan lines drawn where the white
- * lines were detected
- * @param lines a vector of start and end points for each line found
- *
- *  It Uses the following algorithm to find white lines:
- *     1. turn image into grayscale
- *     2. blur the image
- *     3. run it through a threshold filter using THRESH_TO_ZERO mode
- *     4. run it through an erosion filter
- *     5. run it through a Canny edge detector
- *     6. finally, take this processed image and find the lines using
- * Probabilistic Hough Transform HoughLinesP
- */
-cv::Mat ColorFilter::findLines(const cv::Mat& src_image)
-{
-    this->original_image = src_image;
-    // Convert the BGR image to Gray scale
-    cvtColor(src_image, this->gray_image, CV_BGR2GRAY);
-
-    // Reduce resolution of image
-    cv::GaussianBlur(this->gray_image, this->blur_image, cv::Size(7, 7), 0.0, 0.0,
-        cv::BORDER_DEFAULT);
-
-    // Threshold the image
-    cv::threshold(this->blur_image, this->thresh_image, this->thresh_val, 1,
-        cv::THRESH_TOZERO);
-
-    // Erode the image
-    cv::Mat element = getStructuringElement(
-        cv::MORPH_ELLIPSE, cv::Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-        cv::Point(erosion_size, erosion_size));
-    cv::erode(this->thresh_image, this->eroded_image, element);
-
-    // Canny edge detection
-    cv::Canny(this->eroded_image, this->canny_image, 50, 250, 3);
-
-    // Prevent any divide by zero errors
-    if (this->h_rho <= 0) {
-        this->h_rho = 1;
-    }
-    if (this->h_theta <= 0) {
-        this->h_theta = 1;
-    }
-    if (this->h_thresh <= 0) {
-        this->h_thresh = 1;
-    }
-
-    // Find the Hough lines
-    cv::HoughLinesP(this->canny_image, lines, this->h_rho,
-        (CV_PI / this->h_theta), this->h_thresh, this->h_minLineLen,
-        this->h_maxLineGap);
-    this->hough_image = cv::Mat::zeros(canny_image.size(), CV_8UC1);
-    this->cyan_image = src_image.clone();
-
-    // Draw the Hough lines on the image
-    for (int i = 0; i < lines.size(); i++) {
-        line(this->hough_image, cv::Point(lines[i][0], lines[i][1]),
-            cv::Point(lines[i][2], lines[i][3]), 255, 3, 8);
-        line(this->cyan_image, cv::Point(lines[i][0], lines[i][1]),
-            cv::Point(lines[i][2], lines[i][3]), cv::Scalar(255, 255, 0), 5, 8);
-    }
-    for (int i=0; i < hough_image.rows;i++){
-        for (int j=0; j<hough_image.cols;j++){
-            if (i <= this->upper_limit){
-                hough_image.at<unsigned char>(i,j)=0;
-            }
-            else if (i >= this->lower_limit){
-                hough_image.at<unsigned char>(i,j)=0;
-            }
-        }
-    }
-
-    //return hough_image;
-    return this->cyan_image;
-}
-
 
 int ColorFilter::rgb2hsv(uint32_t rgb){
 	uint8_t B = (rgb >> 16) & 0x0000ff;
@@ -199,7 +104,7 @@ bool ColorFilter::checkWhite(float rgb) {
 	else mid = R;
 
 	delt = (max-mid) > (mid-min) ? (max-mid) : (mid-min);
-	return (delt <= 15 && mid > 150);
+	return (delt <= this->max_delt && mid > this->min_val);
 }
 
 bool ColorFilter::checkRed(float rgb) {
@@ -227,30 +132,5 @@ bool ColorFilter::checkBlu(float rgb) {
 
 	return (h < this->B_H_Max && h > this->B_H_Min && s > B_S_Min && v > B_V_Min);
 }
-
-
-
-/**
- * @brief RBflagFilter::displayRedBlurred Use OpenCV imShow to display the
- *Original image in a window
- *
- * This function reduces the size of the picture to 400x300
- */
-void ColorFilter::displayOriginal()
-{
-    try {
-        // Show the images in a window for debug purposes
-        cv::Mat disImage;
-        cv::resize(this->original_image, disImage, cv::Size(400, 300));
-        cv::imshow("Original Image", disImage);
-        cv::waitKey(3);
-    }
-    catch (cv::Exception& e) {
-        const char* err_msg = e.what();
-        std::cout << "exception caught: " << err_msg << std::endl;
-    }
-}
-
-
 
 

@@ -221,9 +221,9 @@ int main(int argc, char** argv) {
 		ros::spinOnce();
 		loop_rate.sleep();
 		clock_t fin = clock();
-		//printf("Loop Time:\t %f \n", ((double)fin - start)/CLOCKS_PER_SEC);
-		//printf("Buffer Time:\t %f \n", ((double)buff_time-start)/CLOCKS_PER_SEC);
-		//printf("Cloud Time:\t %f \n", ((double)gen_cloud-buff_time)/CLOCKS_PER_SEC);
+		printf("Loop Time:\t %f \n", ((double)fin - start)/CLOCKS_PER_SEC);
+		printf("Buffer Time:\t %f \n", ((double)buff_time-start)/CLOCKS_PER_SEC);
+		printf("Cloud Time:\t %f \n", ((double)gen_cloud-buff_time)/CLOCKS_PER_SEC);
 	    }
     }
     delete zed;
@@ -238,4 +238,8 @@ After:
 Loop Time:	 0.095858 
 Buffer Time:	 0.076028 
 Cloud Time:	 0.017682 
+
+Loop Time:	 0.053562 
+Buffer Time:	 0.018948 
+Cloud Time:	 0.033982 
 */
