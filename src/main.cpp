@@ -129,7 +129,19 @@ int main(int argc, char** argv) {
         if (!zed->grab(dm_type)) { 
 		index4 = 0;
 
-		memcpy(cpu_cloud, zed->retrieveMeasure(MEASURE::XYZBGRA).data, width * height * sizeof (float) * 4);
+		//memcpy(cpu_cloud, zed->retrieveMeasure(MEASURE::XYZBGRA).data, width * height * sizeof (float) * 4);
+		//Get image from ZED using the gpu buffer
+		gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA); 	
+		//Get size values for retrieved image 	
+		point_step = gpu_cloud.channels * gpu_cloud.getDataSize(); 	
+		row_step = point_step * width; 	
+		//Create a cpu buffer for the image 	
+		cpu_cloud = (float*) malloc(row_step * height); 	
+		//Copy gpu buffer into cpu buffer 	
+		cudaError_t err = cudaMemcpy2D( 	
+			cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(), 	
+			row_step, height, cudaMemcpyDeviceToHost 	
+		);
 
 		//19% of execution time before here
 		
@@ -141,9 +153,9 @@ int main(int argc, char** argv) {
 
 		//printf("Cloud height: %d\n", height);
 		//printf("filtered height: %d\n", cloud_image.rows);
-		color_filter.displayOriginal();
-		color_filter.displayThreshold();
-		color_filter.displayEroded();
+//		color_filter.displayOriginal();
+//		color_filter.displayThreshold();
+//		color_filter.displayEroded();
 		//color_filter.displayCanny();
 		//color_filter.displayRedThreshold();
 		//color_filter.displayBluThreshold();
@@ -186,7 +198,7 @@ int main(int argc, char** argv) {
 
 		}
 		clock_t gen_cloud = clock();
-
+		free(cpu_cloud);
 		//Publish Red Flag Point Cloud
 		if (red_cloud.height == 0) {
 			red_cloud.push_back(pcl::PointXYZRGBA());
@@ -225,9 +237,9 @@ int main(int argc, char** argv) {
 		ros::spinOnce();
 		loop_rate.sleep();
 		clock_t fin = clock();
-		printf("Loop Time:\t %f \n", ((double)fin - start)/CLOCKS_PER_SEC);
-		printf("Buffer Time:\t %f \n", ((double)buff_time-start)/CLOCKS_PER_SEC);
-		printf("Cloud Time:\t %f \n", ((double)gen_cloud-buff_time)/CLOCKS_PER_SEC);
+		//printf("Loop Time:\t %f \n", ((double)fin - start)/CLOCKS_PER_SEC);
+		//printf("Buffer Time:\t %f \n", ((double)buff_time-start)/CLOCKS_PER_SEC);
+		//printf("Cloud Time:\t %f \n", ((double)gen_cloud-buff_time)/CLOCKS_PER_SEC);
 	    }
     }
     delete zed;
