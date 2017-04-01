@@ -17,6 +17,7 @@
 
 #include <ros/ros.h>
 #include <opencv2/opencv.hpp>
+#include <opencv2/gpu/gpu.hpp>
 
 // 2016 Pipeline includes
 #include <opencv2/highgui/highgui.hpp>
@@ -117,8 +118,10 @@ int main(int argc, char** argv) {
     red_cloud.clear();
     blue_cloud.clear();
     white_cloud.clear();
-    cv::Mat image(height, width, CV_8UC4, 1);
-
+    cv::Vec3d wl_point;
+    cv::gpu::GpuMat image;//(height, width, CV_8UC4, 1);
+    cv::Mat host_image;//(height, width, CV_8UC4, 1);
+    cv::Mat cloud_image;
 
     printf("Entering main loop\n");
     while (nh.ok()) {
@@ -126,15 +129,21 @@ int main(int argc, char** argv) {
         if (!zed->grab(dm_type)) {
 		index4 = 0;
 
-	memcpy(cpu_cloud, zed->retrieveMeasure(MEASURE::XYZBGRA).data, width * height * sizeof (float) * 4);
+		memcpy(cpu_cloud, zed->retrieveMeasure(MEASURE::XYZBGRA).data, width * height * sizeof (float) * 4);
 
 		//19% of execution time before here
 		
 		//Filter the image for white lines and red/blue flags
-		//cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), image, CV_RGBA2RGB);
+		//cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), host_image, CV_RGBA2RGB);
 
-		//cv::Mat cv_filteredImage = color_filter.findLines(image);
+		//cv::gpu::GpuMat cv_filteredImage = color_filter.findLines(host_image);
+		//cv_filteredImage.download(cloud_image);
+
+
 		//color_filter.displayOriginal();
+		//color_filter.displayThreshold();
+		//color_filter.displayEroded();
+		//color_filter.displayCanny();
 		//color_filter.displayRedThreshold();
 		//color_filter.displayBluThreshold();
 
@@ -144,8 +153,6 @@ int main(int argc, char** argv) {
 		
         	//Iterate through points in cloud
         	for (int i = 0; i < size; i++) {
-			//Get coresponding points for each cloud
-			//cv::Vec3b wl_point = cv_filteredImage.at<cv::Vec3b>((index4/4)/width,(index4/4)%width);
 
 			//Check for bad data
 			if (cpu_cloud[index4 + 2] > 0) {
@@ -169,7 +176,7 @@ int main(int argc, char** argv) {
 				blue_cloud.push_back(point);
 			}
 			//Check if point exists in white-line image
-			else if (color_filter.checkWhite(cpu_cloud[index4+3])){//wl_point[0] == 255 && wl_point[1] == 255) {
+			else if (color_filter.checkWhite(cpu_cloud[index4+3])){
 				point.y = -cpu_cloud[index4++];
 		        	point.z = cpu_cloud[index4++];
 		        	point.x = -cpu_cloud[index4++];
@@ -221,9 +228,9 @@ int main(int argc, char** argv) {
 		ros::spinOnce();
 		loop_rate.sleep();
 		clock_t fin = clock();
-		printf("Loop Time:\t %f \n", ((double)fin - start)/CLOCKS_PER_SEC);
-		printf("Buffer Time:\t %f \n", ((double)buff_time-start)/CLOCKS_PER_SEC);
-		printf("Cloud Time:\t %f \n", ((double)gen_cloud-buff_time)/CLOCKS_PER_SEC);
+		//printf("Loop Time:\t %f \n", ((double)fin - start)/CLOCKS_PER_SEC);
+		//printf("Buffer Time:\t %f \n", ((double)buff_time-start)/CLOCKS_PER_SEC);
+		//printf("Cloud Time:\t %f \n", ((double)gen_cloud-buff_time)/CLOCKS_PER_SEC);
 	    }
     }
     delete zed;
