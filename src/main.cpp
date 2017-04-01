@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
     red_cloud.clear();
     blue_cloud.clear();
     white_cloud.clear();
-    cv::Vec3d wl_point;
+    cv::Vec3b wl_point;
     cv::gpu::GpuMat image;//(height, width, CV_8UC4, 1);
     cv::Mat host_image;//(height, width, CV_8UC4, 1);
     cv::Mat cloud_image;
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
     printf("Entering main loop\n");
     while (nh.ok()) {
 	clock_t start = clock();
-        if (!zed->grab(dm_type)) {
+        if (!zed->grab(dm_type)) { 
 		index4 = 0;
 
 		memcpy(cpu_cloud, zed->retrieveMeasure(MEASURE::XYZBGRA).data, width * height * sizeof (float) * 4);
@@ -134,15 +134,16 @@ int main(int argc, char** argv) {
 		//19% of execution time before here
 		
 		//Filter the image for white lines and red/blue flags
-		//cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), host_image, CV_RGBA2RGB);
+		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), host_image, CV_RGBA2RGB);
 
-		//cv::gpu::GpuMat cv_filteredImage = color_filter.findLines(host_image);
-		//cv_filteredImage.download(cloud_image);
+		cv::gpu::GpuMat cv_filteredImage = color_filter.findLines(host_image);
+		cv_filteredImage.download(cloud_image);
 
-
-		//color_filter.displayOriginal();
-		//color_filter.displayThreshold();
-		//color_filter.displayEroded();
+		//printf("Cloud height: %d\n", height);
+		//printf("filtered height: %d\n", cloud_image.rows);
+		color_filter.displayOriginal();
+		color_filter.displayThreshold();
+		color_filter.displayEroded();
 		//color_filter.displayCanny();
 		//color_filter.displayRedThreshold();
 		//color_filter.displayBluThreshold();
@@ -152,40 +153,36 @@ int main(int argc, char** argv) {
 		clock_t buff_time = clock();
 		
         	//Iterate through points in cloud
-        	for (int i = 0; i < size; i++) {
+        	for (index4 = 0; index4 < size*4; index4+=4) {
 
-			//Check for bad data
-			if (cpu_cloud[index4 + 2] > 0) {
-				index4 += 4;
-	        		continue;
-	        	}
 			//Check if point exists in red image
-			else if (color_filter.checkRed(cpu_cloud[index4+3])){
-				point.y = -cpu_cloud[index4++];
-				point.z = cpu_cloud[index4++];
-	        		point.x = -cpu_cloud[index4++];
-	        		point.rgb = cpu_cloud[index4++];
+			if (color_filter.checkRed(cpu_cloud[index4+3])){
+				point.y = -cpu_cloud[index4];
+				point.z = cpu_cloud[index4+1];
+	        		point.x = -cpu_cloud[index4+2];
+	        		point.rgb = cpu_cloud[index4+3];
 				red_cloud.push_back(point);
 			}
 			//Check if point exists in blue image
 			else if (color_filter.checkBlu(cpu_cloud[index4+3])) {	
-				point.y = -cpu_cloud[index4++];
-				point.z = cpu_cloud[index4++];
-				point.x = -cpu_cloud[index4++];
-				point.rgb = cpu_cloud[index4++];
+				point.y = -cpu_cloud[index4];
+				point.z = cpu_cloud[index4+1];
+				point.x = -cpu_cloud[index4+2];
+				point.rgb = cpu_cloud[index4+3];
 				blue_cloud.push_back(point);
 			}
 			//Check if point exists in white-line image
 			else if (color_filter.checkWhite(cpu_cloud[index4+3])){
-				point.y = -cpu_cloud[index4++];
-		        	point.z = cpu_cloud[index4++];
-		        	point.x = -cpu_cloud[index4++];
-		        	point.rgb = cpu_cloud[index4++];
-				white_cloud.push_back(point);
+				wl_point = cloud_image.at<cv::Vec3b>(index4/4/width, index4/4%width);
+				if (wl_point[0] != 0){
+					point.y = -cpu_cloud[index4];
+			        	point.z = cpu_cloud[index4+1];
+			        	point.x = -cpu_cloud[index4+2];
+			        	point.rgb = cpu_cloud[index4+3];
+					white_cloud.push_back(point);
+				}
 			}
-			else {
-				index4 += 4;
-			}
+
 
 		}
 		clock_t gen_cloud = clock();
@@ -228,9 +225,9 @@ int main(int argc, char** argv) {
 		ros::spinOnce();
 		loop_rate.sleep();
 		clock_t fin = clock();
-		//printf("Loop Time:\t %f \n", ((double)fin - start)/CLOCKS_PER_SEC);
-		//printf("Buffer Time:\t %f \n", ((double)buff_time-start)/CLOCKS_PER_SEC);
-		//printf("Cloud Time:\t %f \n", ((double)gen_cloud-buff_time)/CLOCKS_PER_SEC);
+		printf("Loop Time:\t %f \n", ((double)fin - start)/CLOCKS_PER_SEC);
+		printf("Buffer Time:\t %f \n", ((double)buff_time-start)/CLOCKS_PER_SEC);
+		printf("Cloud Time:\t %f \n", ((double)gen_cloud-buff_time)/CLOCKS_PER_SEC);
 	    }
     }
     delete zed;
