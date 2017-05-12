@@ -42,31 +42,31 @@ ColorFilter::ColorFilter()
 void ColorFilter::configCallback(igvc_stereo::color_filter_paramsConfig &config, uint32_t level)
 {
   // Set class variables to new values. They should match what is input at the dynamic reconfigure GUI.
-	max_delt = config.groups.lines.max_delt_param;
-	min_val = config.groups.lines.min_val_param;
+	this->max_delt = config.max_delt_param;
+	this->min_val = config.min_val_param;
 
-	R_H_Max = config.groups.flags.R_H_Max_param; // 203
-	R_H_Min = config.groups.flags.R_H_Min_param;
-	R_S_Max = config.groups.flags.R_S_Max_param;
-	R_S_Min = config.groups.flags.R_S_Min_param;
-	R_V_Max = config.groups.flags.R_V_Max_param;
-	R_V_Min = config.groups.flags.R_V_Min_param;
-	B_H_Max = config.groups.flags.B_H_Max_param;
-	B_H_Min = config.groups.flags.B_H_Min_param;
-	B_S_Max = config.groups.flags.B_S_Max_param;
-	B_S_Min = config.groups.flags.B_S_Min_param;
-	B_V_Max = config.groups.flags.B_V_Max_param;
-	B_V_Min = config.groups.flags.B_V_Min_param;
+	this->R_H_Max = config.R_H_Max_param; // 203
+	this->R_H_Min = config.R_H_Min_param;
+	this->R_S_Max = config.R_S_Max_param;
+	this->R_S_Min = config.R_S_Min_param;
+	this->R_V_Max = config.R_V_Max_param;
+	this->R_V_Min = config.R_V_Min_param;
+	this->B_H_Max = config.B_H_Max_param;
+	this->B_H_Min = config.B_H_Min_param;
+	this->B_S_Max = config.B_S_Max_param;
+	this->B_S_Min = config.B_S_Min_param;
+	this->B_V_Max = config.B_V_Max_param;
+	this->B_V_Min = config.B_V_Min_param;
 
-	thresh_val=config.groups.filter.thresh_val_param;
-	erosion_size=config.groups.filter.erosion_size_param;
-	h_rho=config.groups.hough.h_rho_param;
-	h_theta=config.groups.hough.h_theta_param;
-	h_thresh=config.groups.hough.h_thresh_param;
-	h_minLineLen=config.groups.hough.h_minLineLen_param;
-	h_maxLineGap=config.groups.hough.h_maxLineGap_param;
-	lower_limit=config.groups.hough.lowerLimit_param;
-	upper_limit=config.groups.hough.upperLimit_param;
+	this->thresh_val=config.thresh_val_param;
+	this->erosion_size=config.erosion_size_param;
+	this->h_rho=config.h_rho_param;
+	this->h_theta=config.h_theta_param;
+	this->h_thresh=config.h_thresh_param;
+	this->h_minLineLen=config.h_minLineLen_param;
+	this->h_maxLineGap=config.h_maxLineGap_param;
+	this->lower_limit=config.lowerLimit_param;
+	this->upper_limit=config.upperLimit_param;
 } // end configCallback()
 
 /**
@@ -106,47 +106,7 @@ cv::gpu::GpuMat ColorFilter::findLines(const cv::Mat& src_image)
         cv::Point(erosion_size, erosion_size));
     cv::gpu::erode(this->thresh_image, this->eroded_image, element);
 
-    // Canny edge detection TODO: make Canny values dynamic
-    //cv::gpu::Canny(this->eroded_image, this->canny_image, 50, 250, 3);
-
     return this->eroded_image;
-    /*/ Prevent any divide by zero errors
-    if (this->h_rho <= 0) {
-        this->h_rho = 1;
-    }
-    if (this->h_theta <= 0) {
-        this->h_theta = 1;
-    }
-    if (this->h_thresh <= 0) {
-        this->h_thresh = 1;
-    }
-
-    // Find the Hough lines
-    cv::HoughLinesP(this->canny_image, lines, this->h_rho,
-        (CV_PI / this->h_theta), this->h_thresh, this->h_minLineLen,
-        this->h_maxLineGap);
-    this->hough_image = cv::Mat::zeros(canny_image.size(), CV_8UC1);
-    this->cyan_image = src_image.clone();
-
-    // Draw the Hough lines on the image
-    for (int i = 0; i < lines.size(); i++) {
-        line(this->hough_image, cv::Point(lines[i][0], lines[i][1]),
-            cv::Point(lines[i][2], lines[i][3]), 255, 3, 8);
-        line(this->cyan_image, cv::Point(lines[i][0], lines[i][1]),
-            cv::Point(lines[i][2], lines[i][3]), cv::Scalar(255, 255, 0), 5, 8);
-    }
-    for (int i=0; i < hough_image.rows;i++){
-        for (int j=0; j<hough_image.cols;j++){
-            if (i <= this->upper_limit){
-                hough_image.at<unsigned char>(i,j)=0;
-            }
-            else if (i >= this->lower_limit){
-                hough_image.at<unsigned char>(i,j)=0;
-            }
-        }
-    }
-
-    return hough_image;*/
 }
 
 
