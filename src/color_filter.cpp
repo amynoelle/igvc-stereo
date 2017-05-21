@@ -8,32 +8,6 @@
 
 ColorFilter::ColorFilter()
 {
-	this->max_delt = 15;
-	this->min_val = 150;
-	this->R_H_Max = 40; // 203
-	this->R_H_Min = 230;
-	this->R_S_Max = 255;
-	this->R_S_Min = 190;
-	this->R_V_Max = 255;
-	this->R_V_Min = 102;
-	this->B_H_Max = 200;
-	this->B_H_Min = 150;
-	this->B_S_Max = 255;
-	this->B_S_Min = 150;
-	this->B_V_Max = 255;
-	this->B_V_Min = 50;
-
-	this->thresh_val = 200; // 203
-	this->erosion_size = 3; // 2
-	this->h_rho = 1; // 1
-	this->h_theta = 180; // 180
-	this->h_thresh = 30; // 40
-	this->h_minLineLen = 21; // 20
-	this->h_maxLineGap = 20; // 30
-	this->lower_limit=118;
-	this->upper_limit=250;
-
-
 	dynamic_reconfigure::Server<igvc_stereo::color_filter_paramsConfig>::CallbackType cb;
 	cb = boost::bind(&ColorFilter::configCallback, this, _1, _2);
 	dr_srv_.setCallback(cb);

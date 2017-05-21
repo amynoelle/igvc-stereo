@@ -1,0 +1,21 @@
+<launch>
+
+<param name="pub_images" type="bool" value="true"/>
+
+<node pkg="igvc_stereo" type="zed-ros" output="screen" name="zed_ros_wrapper">
+</node>
+
+<node pkg="tf" type="static_transform_publisher" name="zed_to_map"
+	args="0.44 0.0 1.18 0 0.52 0 map zed_current_frame 100"/>
+
+
+<node pkg="image_view" type="image_view" name="white_view" args="image:=/camera/white"/>
+<node pkg="image_view" type="image_view" name="image_view" args="image:=/camera/image"/> 
+<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure"/>	
+
+<node pkg="rviz" type="rviz" name="rviz" args="d /home/ubuntu/catkin_ws/igvc_stereo/launch/stereo.rviz"/>
+<!--	
+-->
+
+
+</launch>

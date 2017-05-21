@@ -46,10 +46,8 @@
 using namespace sl::zed;
 using namespace std;
 
-
 Camera* zed;
 SENSING_MODE dm_type = STANDARD;
-
 
 int main(int argc, char** argv) {
     /*
@@ -57,7 +55,7 @@ int main(int argc, char** argv) {
     */
     printf("Initializing ZED\n");
     zed = new Camera(VGA); //HD720);
-
+    
     sl::zed::InitParams params;
     params.mode = PERFORMANCE;
     params.unit = METER;
@@ -82,10 +80,11 @@ int main(int argc, char** argv) {
     - publishers
     - spin rate
     */
-
+    bool pub_images=false;
     ros::init(argc, argv, "zed_ros_node");
     ros::NodeHandle nh;
     ros::NodeHandle nh_flags("rb_flag");
+    nh.param("/pub_images", pub_images, false);
     ColorFilter color_filter;
     sensor_msgs::PointCloud2 output_red;
     sensor_msgs::PointCloud2 output_blue;
@@ -96,7 +95,18 @@ int main(int argc, char** argv) {
     std::string point_cloud_frame_id = "/zed_current_frame";
     ros::Publisher pub_red_cloud = nh.advertise<sensor_msgs::PointCloud2> (red_cloud_topic, 2);
     ros::Publisher pub_blue_cloud = nh.advertise<sensor_msgs::PointCloud2> (blue_cloud_topic, 2);
-    ros::Publisher pub_white_cloud = nh.advertise<sensor_msgs::PointCloud2> (white_cloud_topic, 2);
+    ros::Publisher white_publisher_cloud = nh.advertise<sensor_msgs::PointCloud2> (white_cloud_topic, 2);
+    image_transport::Publisher image_publisher;
+    image_transport::Publisher white_publisher;
+    ROS_INFO("PUB IMAGES IS: %d",pub_images);
+    if (pub_images){
+        //ROS_INFO("INSIDE TOP CREATE TRANSPORTS");
+        image_transport::ImageTransport it_image(nh);
+        image_publisher = it_image.advertise("camera/image", 1);
+        image_transport::ImageTransport it_white(nh);
+	    white_publisher = it_white.advertise("camera/white", 1);
+        //ROS_INFO("INSIDE bottom CREATE TRANSPORTS");
+    }
     ros::Rate loop_rate(30);
 
     printf("Allocating Data\n");
@@ -150,16 +160,17 @@ int main(int argc, char** argv) {
 
 		cv::gpu::GpuMat cv_filteredImage = color_filter.findLines(host_image);
 		cv_filteredImage.download(cloud_image);
-
+		//ROS_INFO("rows: %d, cols: %d, depth:%d,  type:%d",cloud_image.rows,cloud_image.cols,cloud_image.depth(),cloud_image.type());
+		// color_image is CV_8UC1
+		if(pub_images){
+		    //ROS_INFO("TOP PUBLISH IMAGES");
+		    sensor_msgs::ImagePtr img_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", host_image).toImageMsg();
+            image_publisher.publish(img_msg);
+		    sensor_msgs::ImagePtr fltrd_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", cloud_image).toImageMsg();
+            white_publisher.publish(fltrd_msg);
+        }
 		//printf("Cloud height: %d\n", height);
 		//printf("filtered height: %d\n", cloud_image.rows);
-//		color_filter.displayOriginal();
-//		color_filter.displayThreshold();
-//		color_filter.displayEroded();
-		//color_filter.displayCanny();
-		//color_filter.displayRedThreshold();
-		//color_filter.displayBluThreshold();
-
 		//86% of execution time before here
 		
 		clock_t buff_time = clock();
@@ -194,8 +205,6 @@ int main(int argc, char** argv) {
 					white_cloud.push_back(point);
 				}
 			}
-
-
 		}
 		clock_t gen_cloud = clock();
 		free(cpu_cloud);
@@ -231,7 +240,7 @@ int main(int argc, char** argv) {
        		output_white.header.stamp = ros::Time::now();
        		output_white.is_bigendian = false;
        		output_white.is_dense = false;
-       		pub_white_cloud.publish(output_white);
+       		white_publisher_cloud.publish(output_white);
 		white_cloud.clear();
 		//Spin once updates dynamic_reconfigure values
 		ros::spinOnce();
