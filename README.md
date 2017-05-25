@@ -2,13 +2,26 @@
 
 ### Usage Instructions
 #### Set-up
-Every time the Jetson board is turned off, the clock resets. This causes an issue with the ROS timestamps if you were to simply turn on the Jetson and Iggy and run the launch file. I tried to set up Iggy as an NTP server for the Jetson board, but have been unable to get it to work consistently. Instead, I ssh into the Jetson board from Iggy and manually set the time with "sudo date --set="[DATE_STR]"". Below is a simple set of instructions for this
-1. Open two terminals on Iggy. In the first, ssh into the Jetson board with "ssh ubuntu@[Jetson_IP]" and the password is ubuntu (super secure).
-2. Get a stop watch.
-3. In the second terminal, type "date" to get the date string. AT THE SAME TIME, start he stop watch.
-4. Copy the date string from the first terminal and prepare to enter it into the second terminal in the command: "sudo date --set="[DATE_STRING]""
-5. Add the elapsed time on the stop watch to the date string in the first terminal and press enter.
+Every time the Jetson board is turned off, the clock resets. This causes an issue with the ROS timestamps if you were to simply turn on the Jetson and Iggy and run the launch file. Use ntpdate to set the initial date and time then ntpd to keep them synchronized. In the first, ssh into the Jetson board with "ssh ubuntu@[Jetson_IP]" and the password is ubuntu (super secure).
 
+#### NTP setup on the Jetson
+To initalize the date time of the jetson tk-1 and restart ntp requests, modify the file /etc/init.d/rc.local by adding to the bottom:
+
+( /etc/init.d/ntp stop
+source /home/ubuntu/ntp_ip.cfg
+echo "NTP_IP, $NTP_IP"
+until ping -nq -c3 $NTP_IP; do
+    echo "Waiting for network..."
+    sleep 1
+done
+ntpdate -s time.nist.gov
+/etc/init.d/ntp start )&
+
+Create a config file in the home directory called /home/ubuntu/ntp_ip.cfg with one line in it:
+NTP_IP=192.168.2.2
+
+This IP address needs to be the IP address of the ROS_MASTER_URI
+  
 #### Tuning The Filters
 Running the launch file that starts Iggy in a state where she is ready to run the course shoudl also start an rqt_reconfigure gui. This gui should have an option for zed_stereo, if not hit the refresh button and it should show up. The filters will not use the correct parameters until the rqt callback is invoked by changing one of the parameters, so go ahead and change one of the filter values by one just to see how well the current set of values performs.
     
