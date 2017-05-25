@@ -97,15 +97,9 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh_flags("rb_flag");
     nh.param("/pub_images", pub_images, false);
     ColorFilter color_filter;
-    sensor_msgs::PointCloud2 output_red;
-    sensor_msgs::PointCloud2 output_blue;
     sensor_msgs::PointCloud2 output_white;
-    string red_cloud_topic = "point_cloud/red_cloud";
-    string blue_cloud_topic = "point_cloud/blue_cloud";
     string white_cloud_topic = "point_cloud/white_cloud";
     std::string point_cloud_frame_id = "/zed_current_frame";
-    ros::Publisher pub_red_cloud = nh.advertise<sensor_msgs::PointCloud2> (red_cloud_topic, 2);
-    ros::Publisher pub_blue_cloud = nh.advertise<sensor_msgs::PointCloud2> (blue_cloud_topic, 2);
     ros::Publisher white_publisher_cloud = nh.advertise<sensor_msgs::PointCloud2> (white_cloud_topic, 2);
     image_transport::Publisher image_publisher;
     image_transport::Publisher white_publisher;
@@ -126,8 +120,6 @@ int main(int argc, char** argv) {
     - Point clouds
     - cv::Mat image type
     */
-    pcl::PointCloud<pcl::PointXYZRGBA> red_cloud;
-    pcl::PointCloud<pcl::PointXYZRGBA> blue_cloud;
     pcl::PointCloud<pcl::PointXYZRGBA> white_cloud;
     int point_step;
     int row_step;
@@ -135,8 +127,6 @@ int main(int argc, char** argv) {
     float* cpu_cloud = new float[height*width*4];
     float color;
     pcl::PointXYZRGBA point;
-    red_cloud.clear();
-    blue_cloud.clear();
     white_cloud.clear();
     cv::Vec3b wl_point;
     cv::gpu::GpuMat image;//(height, width, CV_8UC4, 1);
@@ -148,6 +138,7 @@ int main(int argc, char** argv) {
     while (nh.ok()) {
         std::ostringstream outStream;
         if (!zed->grab(dm_type)) { 
+            //32% of execution this segment
 	        outStream << clock() << ","; // top timestamp
 		    //Get image from ZED using the gpu buffer
 		    gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA); 	
@@ -163,10 +154,9 @@ int main(int argc, char** argv) {
 		    );
 	        outStream << clock() << ","; // b4linefilter timestamp
 
-		    //26% of execution time before here was 16%
+		    //17% of execution this segment
 		
-		    //Filter the image for white lines and red/blue flags
-		    //cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), host_image, CV_RGBA2RGB);
+		    //Filter the image for white lines and 
             cv::Mat  host_image = slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT));
 		    cv::gpu::GpuMat cv_filteredImage = color_filter.findLines(host_image);
 
@@ -179,31 +169,13 @@ int main(int argc, char** argv) {
 		        sensor_msgs::ImagePtr fltrd_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", cloud_image).toImageMsg();
                 white_publisher.publish(fltrd_msg);
             }
-		    //16% time for this segment was 86% of execution time before here
+		    //23% of execution this segment
 		
 	        outStream << clock() << ","; // after timestamp
 		
         	//Iterate through points in cloud
         	for (int index4 = 0; index4 < size*4; index4+=4) {
 
-			    //Check if point exists in red image
-			    if (color_filter.checkRed(cpu_cloud[index4+3])){
-				    point.y = -cpu_cloud[index4];
-				    point.z = cpu_cloud[index4+1];
-            		point.x = -cpu_cloud[index4+2];
-            		point.rgb = cpu_cloud[index4+3];
-				    red_cloud.push_back(point);
-			    }
-			    //Check if point exists in blue image
-			    else if (color_filter.checkBlu(cpu_cloud[index4+3])) {	
-				    point.y = -cpu_cloud[index4];
-				    point.z = cpu_cloud[index4+1];
-				    point.x = -cpu_cloud[index4+2];
-				    point.rgb = cpu_cloud[index4+3];
-				    blue_cloud.push_back(point);
-			    }
-			    //Check if point exists in white-line image			    
-			    else{
 		            wl_point = cloud_image.at<cv::Vec3b>(index4/4/width, index4/4%width);
                     if (wl_point[0] != 0){
                         point.y = -cpu_cloud[index4];
@@ -212,34 +184,11 @@ int main(int argc, char** argv) {
                     	point.rgb = cpu_cloud[index4+3];
                         white_cloud.push_back(point);
                     }
-			   }
 		    }
+		    //19% of execution this segment
 	        outStream << clock() << ","; // afterchecking timestamp
 		    free(cpu_cloud);
-		    //Publish Red Flag Point Cloud
-		    if (red_cloud.height == 0) {
-			    red_cloud.push_back(pcl::PointXYZRGBA());
-		    }
 
-		    pcl::toROSMsg(red_cloud, output_red); // Convert the point cloud to a ROS message
-		    output_red.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
-		    output_red.header.stamp = ros::Time::now();
-		    output_red.is_bigendian = false;
-		    output_red.is_dense = false;
-		    pub_red_cloud.publish(output_red);
-		    red_cloud.clear();
-            	//Publish Blue Flag Point Cloud
-		    if (blue_cloud.height == 0) {
-			    blue_cloud.push_back(pcl::PointXYZRGBA());
-		    }
-		    pcl::toROSMsg(blue_cloud, output_blue);
-            	output_blue.header.frame_id = point_cloud_frame_id; // Set the header values of the ROS message
-           		output_blue.header.stamp = ros::Time::now();
-           		output_blue.is_bigendian = false;
-           		output_blue.is_dense = false;
-           		pub_blue_cloud.publish(output_blue);
-		    blue_cloud.clear();
-            	//Publish White Line Point Cloud
 		    if (white_cloud.height == 0){
 			    white_cloud.push_back(pcl::PointXYZRGBA());
 		    }
@@ -253,6 +202,7 @@ int main(int argc, char** argv) {
 		    //Spin once updates dynamic_reconfigure values
 		    ros::spinOnce();
 		    loop_rate.sleep();
+		    //8% of execution this segment
 	        outStream << clock() << "," << CLOCKS_PER_SEC <<"\n"; // bottom timestamp
             log2file(outStream.str());
 	    }

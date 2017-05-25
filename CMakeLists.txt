@@ -102,6 +102,11 @@ add_executable(zed-ros src/main.cpp src/color_filter.cpp)
 target_link_libraries(zed-ros ${LINK_LIBRARIES})
 add_dependencies(zed-ros ${PROJECT_NAME}_gencfg)
 
+
+add_executable(whitevision src/mainWhiteOnly.cpp src/color_filter.cpp)
+target_link_libraries(whitevision ${LINK_LIBRARIES})
+add_dependencies(whitevision ${PROJECT_NAME}_gencfg)
+
 ###############################################################################
 
 #Add all files in subdirectories of the project in
