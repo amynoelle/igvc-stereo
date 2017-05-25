@@ -43,6 +43,16 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
+#include <fstream>
+ 
+void log2file( const std::string &text )
+{
+    std::ofstream log_file(
+        "log_file.txt", std::ios_base::out | std::ios_base::app );
+    log_file << text << std::end;
+}
+
+
 using namespace sl::zed;
 using namespace std;
 
@@ -130,12 +140,14 @@ int main(int argc, char** argv) {
     white_cloud.clear();
     cv::Vec3b wl_point;
     cv::gpu::GpuMat image;//(height, width, CV_8UC4, 1);
-    cv::Mat host_image;//(height, width, CV_8UC4, 1);
+    //cv::Mat host_image;//(height, width, CV_8UC4, 1);
     cv::Mat cloud_image;
 
     printf("Entering main loop\n");
+    log2file("top,b4LineFilter,aftLineFilter,afterchecking,bottom\n");
     while (nh.ok()) {
-	clock_t start = clock();
+    std::ostringstream outStream;
+	    outStream << clock() << ","; // top timestamp
         if (!zed->grab(dm_type)) { 
 		index4 = 0;
 
@@ -152,19 +164,21 @@ int main(int argc, char** argv) {
 			cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(), 	
 			row_step, height, cudaMemcpyDeviceToHost 	
 		);
+	    outStream << clock() << ","; // b4linefilter timestamp
 
 		//19% of execution time before here
 		
 		//Filter the image for white lines and red/blue flags
-		cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), host_image, CV_RGBA2RGB);
-
+		//cv::cvtColor(slMat2cvMat(zed->retrieveImage(sl::zed::SIDE::LEFT)), host_image, CV_RGBA2RGB);
+        cv::Mat  host_image = zed->retrieveImage(sl::zed::SIDE::LEFT)
 		cv::gpu::GpuMat cv_filteredImage = color_filter.findLines(host_image);
+
 		cv_filteredImage.download(cloud_image);
 		//ROS_INFO("rows: %d, cols: %d, depth:%d,  type:%d",cloud_image.rows,cloud_image.cols,cloud_image.depth(),cloud_image.type());
 		// color_image is CV_8UC1
 		if(pub_images){
 		    //ROS_INFO("TOP PUBLISH IMAGES");
-		    sensor_msgs::ImagePtr img_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", host_image).toImageMsg();
+		    sensor_msgs::ImagePtr img_msg = cv_bridge::CvImage(std_msgs::Header(), "bgra8", host_image).toImageMsg();
             image_publisher.publish(img_msg);
 		    sensor_msgs::ImagePtr fltrd_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", cloud_image).toImageMsg();
             white_publisher.publish(fltrd_msg);
@@ -173,7 +187,7 @@ int main(int argc, char** argv) {
 		//printf("filtered height: %d\n", cloud_image.rows);
 		//86% of execution time before here
 		
-		clock_t buff_time = clock();
+	    outStream << clock() << ","; // after timestamp
 		
         	//Iterate through points in cloud
         	for (index4 = 0; index4 < size*4; index4+=4) {
@@ -206,7 +220,7 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
-		clock_t gen_cloud = clock();
+	    outStream << clock() << ","; // afterchecking timestamp
 		free(cpu_cloud);
 		//Publish Red Flag Point Cloud
 		if (red_cloud.height == 0) {
@@ -245,7 +259,8 @@ int main(int argc, char** argv) {
 		//Spin once updates dynamic_reconfigure values
 		ros::spinOnce();
 		loop_rate.sleep();
-		clock_t fin = clock();
+	    outStream << clock() << "\n"; // bottom timestamp
+        log2file(outStream.str());
 		//printf("Loop Time:\t %f \n", ((double)fin - start)/CLOCKS_PER_SEC);
 		//printf("Buffer Time:\t %f \n", ((double)buff_time-start)/CLOCKS_PER_SEC);
 		//printf("Cloud Time:\t %f \n", ((double)gen_cloud-buff_time)/CLOCKS_PER_SEC);

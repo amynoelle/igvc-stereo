@@ -62,25 +62,24 @@ void ColorFilter::configCallback(igvc_stereo::color_filter_paramsConfig &config,
  */
 cv::gpu::GpuMat ColorFilter::findLines(const cv::Mat& src_image)
 {
-    this->original_image.upload(src_image);
+    //this->original_image.upload(src_image);
+    cv::gpu::GpuMat d_src(src_image);
+    cv::gpu::GpuMat d_dst;
+    
     // Convert the BGR image to Gray scale
-    cv::gpu::cvtColor(this->original_image, this->gray_image, CV_BGR2GRAY);
-
+    cv::gpu::cvtColor(d_src, d_dst, CV_BGRA2GRAY);
     // Reduce resolution of image
-    cv::gpu::GaussianBlur(this->gray_image, this->blur_image, cv::Size(7, 7), 0.0, 0.0,
-        cv::BORDER_DEFAULT);
+    cv::gpu::GaussianBlur(d_dst, d_dst, cv::Size(7, 7), 0.0, 0.0, cv::BORDER_DEFAULT);
 
     // Threshold the image
-    cv::gpu::threshold(this->blur_image, this->thresh_image, this->thresh_val, 1,
-        cv::THRESH_TOZERO);
+    cv::gpu::threshold(d_dst, d_dst, this->thresh_val, 1, cv::THRESH_TOZERO);
 
     // Erode the image
     cv::Mat element = getStructuringElement(
         cv::MORPH_ELLIPSE, cv::Size(2 * erosion_size + 1, 2 * erosion_size + 1),
         cv::Point(erosion_size, erosion_size));
-    cv::gpu::erode(this->thresh_image, this->eroded_image, element);
-
-    return this->eroded_image;
+    cv::gpu::erode(d_dst, d_dst, element);
+    return d_dst;
 }
 
 
