@@ -10,8 +10,8 @@
 
 <!--
 <node pkg="image_view" type="image_view" name="white_view" args="image:=/camera/white"/>
-<node pkg="image_view" type="image_view" name="image_view" args="image:=/camera/image"/> -->
-<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure"/>	
+<node pkg="image_view" type="image_view" name="image_view" args="image:=/camera/image"/>
+<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure"/>	 -->
 
 <node pkg="rviz" type="rviz" name="rviz" args="d /home/ubuntu/catkin_ws/igvc_stereo/launch/stereo.rviz"/>
 <!--	
