@@ -1,6 +1,9 @@
 # USMA IGVC Sterevision
 
 ### Usage Instructions
+#### TK1 Optimizations: 
+See http://elinux.org/Jetson/Performance
+
 #### Set-up
 Every time the Jetson board is turned off, the clock resets. This causes an issue with the ROS timestamps if you were to simply turn on the Jetson and Iggy and run the launch file. Use ntpdate to set the initial date and time then ntpd to keep them synchronized. In the first, ssh into the Jetson board with "ssh ubuntu@[Jetson_IP]" and the password is ubuntu (super secure).
 

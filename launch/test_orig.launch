@@ -2,7 +2,7 @@
 
 <param name="pub_images" type="bool" value="true"/>
 
-<node pkg="igvc_stereo" type="whitevision" output="screen" name="zed_ros_wrapper">
+<node pkg="igvc_stereo" type="zed-ros" output="screen" name="zed_ros_wrapper">
 </node>
 
 <node pkg="tf" type="static_transform_publisher" name="zed_to_map"

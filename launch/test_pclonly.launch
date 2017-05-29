@@ -1,0 +1,15 @@
+<launch>
+
+<node pkg="igvc_stereo" type="pcl_only" output="screen" name="zed_ros_wrapper">
+</node>
+
+
+<node pkg="tf" type="static_transform_publisher" name="zed_to_map"
+	args="0 0 0.80 0 0.52 0 map zed_current_frame 100"/>
+
+<node pkg="rviz" type="rviz" name="rviz"/>
+<!--	
+-->
+
+
+</launch>
