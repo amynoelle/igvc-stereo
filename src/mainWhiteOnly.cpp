@@ -51,16 +51,16 @@ void log2file( const std::string &text )
 using namespace sl::zed;
 using namespace std;
 
-bool isLogging=true;
-
 Camera* zed;
 SENSING_MODE dm_type = FILL; // STANDARD
+
+bool isLogging=true;
 
 int main(int argc, char** argv) {
     /*
     Initialize ZED Camera
     */
-    int confidence = 100; // TODO make this a ros param
+    int confidence = 80; // TODO make this a ros param
     //int clampValue = 10; // TODO make this a ros param
     ROS_INFO("JETSON TK1 is initializing ZED\n");
     zed = new Camera(VGA);
@@ -70,21 +70,27 @@ int main(int argc, char** argv) {
     params.unit = METER;
     params.coordinate = RIGHT_HANDED;
     //params.minimumDistance = 0.5;
-    params.verbose = true;    
-    
+    params.verbose = true;
+        
     ERRCODE err = zed->init(params);
     ROS_INFO("JETSON TK1 error code for params is: %s", errcode2str(err).c_str());
     if (err != SUCCESS) {
         delete zed;
         return 1;
     }
-    ROS_INFO("JETSON TK1 is Initializing ROS\n");
+    int width = zed->getImageSize().width;
+    int height = zed->getImageSize().height;
+    int size = width*height;
+    int point_step;
+    int row_step;
+    Mat gpu_cloud;
+    float* cpu_cloud = new float[height*width*4];
+    
+    ROS_INFO("JETSON TK1 is Initializing ROS. Width: %d, Height: %d, Size: %d\n",width,height,size);
     bool pub_images=false;
     ros::init(argc, argv, "zed_ros_node");
-    ros::NodeHandle nh;
-    ros::NodeHandle nh_flags("rb_flag");
+    ros::NodeHandle nh; 
     nh.param("/pub_images", pub_images, false);
-    
     std::string white_cloud_topic = "point_cloud/white_cloud";
     std::string point_cloud_frame_id = "/zed_current_frame";
     ros::Publisher white_publisher_cloud = nh.advertise<sensor_msgs::PointCloud2> (white_cloud_topic, 2);
@@ -113,15 +119,24 @@ int main(int argc, char** argv) {
         white_cloud.clear();
         cv::Mat cloud_image;
         nh.getParam("depth_confidence",confidence);
-        //nh.getParam("depth_clampvalue",clampValue);        
+        //nh.getParam("depth_clampvalue",clampValue); 
         zed->setConfidenceThreshold(confidence);
         //zed->setDepthClampValue(clampValue);
 	    
         if (!zed->grab(dm_type)) { // grabs a new image
 	        if (isLogging) outStream << clock() << ","; // TIMER: afgrab 20.16ms/47% of time
 		    //Get image from ZED using the gpu buffer
-
-		    cv::Mat cpu_cloud = slMat2cvMat(zed->retrieveMeasure_gpu(MEASURE::XYZBGRA));
+		    gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA); 	
+		    //Get size values for retrieved image 	
+		    point_step = gpu_cloud.channels * gpu_cloud.getDataSize(); 	
+		    row_step = point_step * width; 	
+		    //Create a cpu buffer for the image 	
+		    cpu_cloud = (float*) malloc(row_step * height); 	
+		    //Copy gpu buffer into cpu buffer 	
+		    cudaError_t err = cudaMemcpy2D( 	
+			    cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(), 	
+			    row_step, height, cudaMemcpyDeviceToHost 	
+		    );
 		    //sizesLog << cpu_cloud.rows    << "," << cpu_cloud.cols       << ",";
 		    //sizesLog << cpu_cloud.step[0]    << ","<< cpu_cloud.step[1]    << "," << cpu_cloud.elemSize() << "," << cpu_cloud.elemSize1() << ",";
 		    //sizesLog << cpu_cloud.depth() << "," << cpu_cloud.channels() << "," << sizeof(cpu_cloud)<< ",";
@@ -147,24 +162,23 @@ int main(int argc, char** argv) {
 		    //imwrite("/home/ubuntu/image.jpg", cloud_image);
 	        if (isLogging) outStream << clock() << ","; // TIMER: b4Forloop 3.1ms/7.2% of time 		
         	//Iterate through points in cloud
-
-            //TODO This could be faster if we used the GPU to produce a list of pixels of interest and iterated over just those pixels as opposed to
-            // iterating over every pixel in the image.
-		    for (int i = 0; i < cloud_image.rows; i++) { 
-		        for (int j = 0; j < cloud_image.cols;j++) {		        
-                    int wl_point = cloud_image.at<int>(i,j);
-		            if (wl_point > 10){
-		                cv::Vec4f cloud_pt = cpu_cloud.at<cv::Vec4f>(i,j*4);
-                        point.x = -cloud_pt.val[2];
-                    	point.y = -cloud_pt.val[0];
-                    	point.z = cloud_pt.val[1];
-                    	point.rgb = cloud_pt.val[3];
-                        white_cloud.push_back(point);
-		            }
-	            }
-	        }		    
+        	
+        	for (int i = 0; i < size; i++) {
+        	    int x = i/width;
+        	    int y = i%width;
+        	    int wl_point = cloud_image.at<int>(x, y);
+                if (wl_point > 10){
+                    int index4 = i*4;
+                    point.y = -cpu_cloud[index4];
+                    point.z = cpu_cloud[index4+1];
+                    point.x = -cpu_cloud[index4+2];
+                    point.rgb = cpu_cloud[index4+3];
+                    white_cloud.push_back(point);
+                    ROS_INF("x,y: %d,%d index: %d",x,y,index4);                    
+                }
+		    }		    
 	        if (isLogging) outStream << clock() << ","; // TIMER: afForloop 0.91ms/2.2% of time		
-
+		free(cpu_cloud);
 		    if (white_cloud.height == 0){
 			    white_cloud.push_back(pcl::PointXYZRGBA());
 		    }		    

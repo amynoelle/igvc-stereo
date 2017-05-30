@@ -77,6 +77,14 @@ int main(int argc, char** argv) {
         delete zed;
         return 1;
     }
+    int width = zed->getImageSize().width;
+    int height = zed->getImageSize().height;
+    int size = width*height;
+    int point_step;
+    int row_step;
+    Mat gpu_cloud;
+    float* cpu_cloud = new float[height*width*4];
+    
     ROS_INFO("JETSON TK1 is Initializing ROS\n");
     ros::init(argc, argv, "zed_ros_node");
     ros::NodeHandle nh;    
@@ -102,25 +110,32 @@ int main(int argc, char** argv) {
         if (!zed->grab(dm_type)) { // grabs a new image
 	        if (isLogging) outStream << clock() << ","; // TIMER: afgrab 53.6ms/41% of time
 		    //Get image from ZED using the gpu buffer
-		    cv::Mat cpu_cloud = slMat2cvMat(zed->retrieveMeasure_gpu(MEASURE::XYZBGRA));
+		    gpu_cloud = zed->retrieveMeasure_gpu(MEASURE::XYZBGRA); 	
+		    //Get size values for retrieved image 	
+		    point_step = gpu_cloud.channels * gpu_cloud.getDataSize(); 	
+		    row_step = point_step * width; 	
+		    //Create a cpu buffer for the image 	
+		    cpu_cloud = (float*) malloc(row_step * height); 	
+		    //Copy gpu buffer into cpu buffer 	
+		    cudaError_t err = cudaMemcpy2D( 	
+			    cpu_cloud, row_step, gpu_cloud.data, gpu_cloud.getWidthByte(), 	
+			    row_step, height, cudaMemcpyDeviceToHost 	
+		    );
 		    //sizesLog << cpu_cloud.rows    << "," << cpu_cloud.cols       << ",";
 		    //sizesLog << cpu_cloud.step[0]    << ","<< cpu_cloud.step[1]    << "," << cpu_cloud.elemSize() << "," << cpu_cloud.elemSize1() << ",";
 		    //sizesLog << cpu_cloud.depth() << "," << cpu_cloud.channels() << "," << sizeof(cpu_cloud)<< ",";
 	        if (isLogging) outStream << clock() << ","; // TIMER: afRmeasure 6ms/13.8% of time
 	        
         	//Iterate through points in cloud
-		    for (int i = 0; i < cpu_cloud.rows; i++) { 
-		        for (int j = 0; j < cpu_cloud.cols;j++) {		        
-		                cv::Vec4f cloud_pt = cpu_cloud.at<cv::Vec4f>(i,j*4);
-                        point.x = -cloud_pt.val[2];
-                    	point.y = -cloud_pt.val[0];
-                    	point.z = cloud_pt.val[1];
-                    	point.rgb = cloud_pt.val[3];
-                        white_cloud.push_back(point);
-		            }	            
-	        }		    
+        	for (int index4 = 0; index4 < size*4; index4+=4) {
+                point.y = -cpu_cloud[index4];
+                point.z = cpu_cloud[index4+1];
+                point.x = -cpu_cloud[index4+2];
+                point.rgb = cpu_cloud[index4+3];
+                white_cloud.push_back(point);
+		    }		    
 	        if (isLogging) outStream << clock() << ","; // TIMER: afForloop 0.91ms/2.2% of time		
-
+		free(cpu_cloud);
 		    if (white_cloud.height == 0){
 			    white_cloud.push_back(pcl::PointXYZRGBA());
 		    }		    
